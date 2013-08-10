@@ -5,7 +5,9 @@ A class to interface with the Virginia State Corporation Commission's eFile quas
 ## Usage
 
 ### unique()
-See if a name is taken, or is substantially similar to one that is taken:
+See if a name is taken, or is substantially similar to one that is taken. Returns `true` or `false`.
+
+#### Example
 
 ```php
 require 'class.Crump.inc.php';
@@ -19,6 +21,9 @@ Result is `bool(false)`.
 ### search()
 
 Get a list of all records with a business name that contains the string in question. The string only needs to be one character long. By default, 25 results are returned, starting at result 0; these two can be adjusted to page through the results, or `$crump->num` can be set to an implausibly high value to have all results returned at once.
+
+
+#### Example
 
 ```php
 require 'class.Crump.inc.php';
