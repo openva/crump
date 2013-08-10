@@ -18,6 +18,8 @@ Result is `bool(false)`.
 
 ### search()
 
+Get a list of all records with a business name that contains the string in question. The string only needs to be one character long. By default, 25 results are returned, starting at result 0; these two can be adjusted to page through the results, or `$crump->num` can be set to an implausibly high value to have all results returned at once.
+
 ```php
 require 'class.Crump.inc.php';
 $crump = new Crump;
