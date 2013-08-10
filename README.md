@@ -73,6 +73,10 @@ stdClass Object
 )
 ```
 
+## To Do
+
+* Return more information in response to `unique()`. The server returns the simplified organizational name, the matching organizational name, and that organization's SCC ID, albeit as an HTML fragment. All of this should be provided in response to a successful query.
+
 ## License
 
 MIT.
