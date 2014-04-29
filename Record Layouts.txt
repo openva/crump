@@ -1,0 +1,218 @@
+Exhibit "A" - RECORD LAYOUTS OF VIRGINIA 
+CORPORATE, LIMITED PARTNERSHIP & LIMITED LIABILITY COMPANY 
+INFORMATION. MVS/DCB Information - Recfm=VB,Lrecl=677,Blksize=17550 
+(NOTE: Lrecl=677 is required by MVS for Variable Blocked files. The 
+LRECL is the longest record length, 673, plus 4 bytes for a total 
+LRECL of 677.) 
+
+FILE 1 -- TABLE FILE TOTAL LENGTH = 64
+1 TABLE-REC 
+  2 REC-TYPE (A2) Record Type = '01' 
+  2 TABLE-IDENTIFIER (A2) Id for Specific Table 
+  2 TABLE-CODE (A10) Table code 
+  2 TABLE-DESC (A50) Value for Table Code 
+
+See Table Identifier "00" for Description of table types. 
+
+FILE 2 -- CORPORATE FILE TOTAL LENGTH = 673
+1 CORP-REC 
+  2 REC-TYPE (A2) Record Type = '02' 
+  2 CORP-ID (A7) Unique number assigned to Corp 
+	Pos. 1 F = Incorporated outside VA 
+	Pos. 1 Numeric = Incorporated in VA 
+  2 CORP-NAME (A100) Name of Corporation 
+  2 CORP-STATUS (A2) + Corporation Status 
+					   Status '00' '01' '02' '14' 
+					   are all considered 'ACTIVE' 
+  2 CORP-STATUS-DATE (N8) Date of Last Status Change 
+  2 CORP-PER-DUR (N8) Date on which Corp will expire 
+  2 CORP-INC-DATE (N8) Date of Incorporation 
+  2 CORP-STATE-INC (A2) + State of Incorporation 
+  2 CORP-IND-CODE (A2) + Industry Code 
+  2 CORP-STREET1 (A45) Principal Street 
+  2 CORP-STREET2 (A45) Principal Street 
+  2 CORP-CITY (A23) Principal City 
+  2 CORP-STATE (A2) Principal State 
+  2 CORP-ZIP (N9) Principal Zip 
+  2 CORP-PO-EFF-DATE (N8) Effective date of Principal address 
+  2 CORP-RA-NAME (A100) Registered Agent 
+  2 CORP-RA-STREET1 (A45) RA Street 
+  2 CORP-RA-STREET2 (A45) RA Street 
+  2 CORP-RA-CITY (A23) RA City 
+  2 CORP-RA-STATE (A2) RA State 
+  2 CORP-RA-ZIP (N9) RA Zip 
+  2 CORP-RA-EFF-DATE (N8) Effective date of RA 
+  2 CORP-RA-STATUS (A1) + RA Status 
+  2 CORP-RA-LOC (A3) + RA Court Locality 
+  2 CORP-STOCK-IND (A1) Stock Indicator 
+						Valid Values: N - Non Stock 
+						S - Stock 
+  2 CORP-TOTAL-SHARES (N11) Total Shares of Stock 
+  2 CORP-MERGER-IND (A1) Merger Indicator 
+  Valid Values: ' ' - Not in Merger 
+				 N - Non-Survivor 
+				 S - Survivor 
+  2 CORP-ASMT-IND (A1) + Assessment Indicator 
+  2 CORP-STOCK-INFO 
+	3 CORP-STOCK-CLASS (A8) + Stock Class (Occurs 8 times) 
+	3 CORP-STOCK-SHARE-AUTH (N11) Number of Shares (Occurs 8 times) 
+
+
++ Denotes Table Code 
+
+
+FILE 3 -- LIMITED PARTNERSHIP FILE TOTAL LENGTH = 507 
+1 LP-REC 
+  2 REC-TYPE (A2) Record Type = '03' 
+  2 CORP-ID (A7) Unique number assigned to LP 
+	Pos. 1 L = Formed in VA
+	Pos. 1 M = Formed outside VA 
+  2 CORP-NAME (A100) Name of Limited Partnership 
+  2 CORP-STATUS (A2) + LP Status 
+  2 CORP-STATUS-DATE (N8) Date of Last Status Change 
+  2 CORP-PER-DUR (N8) Date on which LP will expire 
+  2 CORP-INC-DATE (N8) Date of Formation 
+  2 CORP-STATE-INC (A2) + State of Formation 
+  2 CORP-IND-CODE (A2) Not used for LP 
+  2 CORP-STREET1 (A45) Principal Street 
+  2 CORP-STREET2 (A45) Principal Street 
+  2 CORP-CITY (A23) Principal City 
+  2 CORP-STATE (A2) Principal State 
+  2 CORP-ZIP (N9) Principal Zip 
+  2 CORP-PO-EFF-DATE (N8) Effective date of Principal address 
+  2 CORP-RA-NAME (A100) Registered Agent 
+  2 CORP-RA-STREET1 (A45) RA Street 
+  2 CORP-RA-STREET2 (A45) RA Street 
+  2 CORP-RA-CITY (A23) RA City 
+  2 CORP-RA-STATE (A2) RA State 
+  2 CORP-RA-ZIP (N9) RA Zip 
+  2 CORP-RA-EFF-DATE (N8) Effective date of RA 
+  2 CORP-RA-STATUS (A1) + RA Status 
+  2 CORP-RA-LOC (A3) + RA Court Locality 
+
+
+FILE 4 -- CORPORATE/LIMITED PARTNERSHIP/LIMITED LIABILITY COMPANY 
+ AMENDMENT FILE TOTAL LENGTH = 181 
+1 AMEND-REC 
+  2 REC-TYPE (A2) Record Type = '04' 
+  2 HIST-CORP-ID (A7) Corporate/LP/LLC Id 
+  2 HIST-AMEND-IND (A1) Amend Indicator 
+  2 HIST-AMEND-TYPE (A1) Corp/LP/LLC Amend Types (Occurs 8 times) 
+  2 HIST-AMEND-DATE (N8) Effective date of Amendment 
+  2 HIST-STOCK-INFO (N3) (contains count of Occurs for 2 flds below) 
+	3 HIST-OLD-SHARES-AUTH (N11) Shares Auth (Occurs 8 times) 
+	3 HIST-OLD-STOCK-CLASS (A8) Stock Class (Occurs 8 times) 
+
+
+FILE 5 -- CORPORATE OFFICER FILE TOTAL LENGTH = 94 
+1 OFF-REC 
+  2 REC-TYPE (A2) Record Type = '05' 
+  2 DIRC-CORP-ID (A7) Corporate Id 
+  2 DIRC-LAST-NAME (A30) Officer Last Name 
+  2 DIRC-FIRST-NAME (A20) Officer First Name 
+  2 DIRC-MIDDLE-NAME (A20) Officer Middle Name 
+  2 DIRC-TITLE (A15) Officer Title 
+
+
+
+
++ Denotes Table Code 
+
+
+FILE 6 -- CORPORATE/LIMITED PARTNERSHIP/LIMITED LIABILITY COMPANY 
+NAME FILE TOTAL LENGTH = 119 
+1 NAME-REC 
+  2 REC-TYPE (A2) Record Type = '06' 
+  2 NAME-CORP-ID (A7) Corp/LP/LLC Id 
+  2 NAME-STATUS (A2) Name Status 
+					 Valid values: 50 - Fictitious Name 
+					 70 - Old Name 
+  2 NAME-CORP-NAME (A100) Corp/LP/LLC Name 
+  2 NAME-EFF-DATE (N8) Effective Date of Name 
+
+
+
+FILE 7 -- MERGER FILE TOTAL LENGTH = 125
+1 MERGER-REC
+  2 REC-TYPE (A2) Record Type = '07' 
+  2 MERG-CORP-ID (A7) Corporate Id 
+  2 MERG-TYPE (A1) Survivor/Non-Survivor Ind 
+				   Valid Values: N - Non-Survivor 
+				   S - Survivor 
+  2 MERG-EFF-DATE (N8) Effective date of merger 
+  2 MERG-SURV-ID (A7) Survivor Corp Id 
+					  Pos. 1 N = Corp not qualified in VA 
+  2 MERG-FOR-CORP-NAME (A100) Name of Foreign Corp not 
+							  qualified in VA 
+
+
+
+
+FILE 8 -- CORPORATE/LIMITED PARTNERSHIP/LIMITED LIABILITY COMPANY 
+RESERVED/REGISTERED NAME FILE TOTAL LENGTH = 344 
+
+1 RES-NAME-REC 
+   2 REC-TYPE (A2) Record Type = '08' 
+   2 RES-NUMBER (A7) Reserved/Registered Number 
+   2 RES-TYPE (A1) Corporate/LP Indicator 
+				   Valid Values: C - Corporate 
+				   L - LP 
+				   X - LLC 
+   2 RES-STATUS (A2) Reserved/Registered Indicator 
+   Valid Values: 60 - Registered 
+				 61 - Reserved 
+   2 RES-NAME (A100) Reserved/Registered Name 
+   2 RES-EXP-DATE (N8) Expiration Date of Res/Reg Name 
+   2 RES-REQUESTOR (A100) Name of Requestor Holding Name 
+   2 RES-STREET1 (A45) Street 1 of Requestor 
+   2 RES-STREET2 (A45) Street 2 of Requestor 
+   2 RES-CITY (A23) City of Requestor 
+   2 RES-STATE (A2) State of Requestor 
+   2 RES-ZIP (N9) Zip of Requestor 
+
++ Denotes Table Code 
+
+
+FILE 9 -- LIMITED LIABILITY COMPANY FILE TOTAL LENGTH = 507 
+1 LLC-REC 
+  2 REC-TYPE (A2) Record Type = '09' 
+  2 CORP-ID (A7) Unique number assigned to LLC 
+	Pos. 1 S = Formed in VA 
+	Pos. 1 T = Formed outside VA 
+  2 CORP-NAME (A100) Name of Limited Liability Company 
+  2 CORP-STATUS (A2) + LLC Status 
+  2 CORP-STATUS-DATE (N8) Date of Last Status Change 
+  2 CORP-PER-DUR (N8) Date on which LLC will expire 
+  2 CORP-INC-DATE (N8) Date of Formation 
+  2 CORP-STATE-INC (A2) + State of Formation 
+  2 CORP-IND-CODE (A2) Industry Code 
+  2 CORP-STREET1 (A45) Principal Street 
+  2 CORP-STREET2 (A45) Principal Street 
+  2 CORP-CITY (A23) Principal City 
+  2 CORP-STATE (A2) Principal State 
+  2 CORP-ZIP (N9) Principal Zip 
+  2 CORP-PO-EFF-DATE (N8) Effective date of Principal address 
+  2 CORP-RA-NAME (A100) Registered Agent 
+  2 CORP-RA-STREET1 (A45) RA Street 
+  2 CORP-RA-STREET2 (A45) RA Street 
+  2 CORP-RA-CITY (A23) RA City 
+  2 CORP-RA-STATE (A2) RA State 
+  2 CORP-RA-ZIP (N9) RA Zip 
+  2 CORP-RA-EFF-DATE (N8) Effective date of RA 
+  2 CORP-RA-STATUS (A1) + RA Status 
+  2 CORP-RA-LOC (A3) + RA Court Locality 
+
+
+
+
+
+
+
+
+
+
+Table Ids
+ 00 Description of Tables 01 Corp Status 02 State Codes 
+ 03 Industry Code 04 Corp RA Status 05 Court Locality 
+ 07 Assessment Ind 12 Stock Class 19 Amendment Type 
+ 23 LP Amend Type 28 LP RA Status 40 LLC RA Status 
