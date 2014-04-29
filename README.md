@@ -2,7 +2,7 @@
 
 A parser for [the Virginia State Corporation Commission's business entity records](https://www.scc.virginia.gov/clk/purch.aspx), which are provided as a single, enormous fixed-width file. Named for Beverley T. Crump, the first member of the State Corporation Commission.
 
-[The file layout](https://www.scc.virginia.gov/clk/files/layout_be.pdf) is documented on the SCC's website as a PDF generated from an ASCII file, which really says it all. (Also available as [not-entirely-formatted ASCII](record_layouts.txt).)
+[The file layout](https://www.scc.virginia.gov/clk/files/layout_be.pdf) is documented on the SCC's website as a PDF generated from an ASCII file. (Also available as [not-entirely-formatted ASCII](record_layouts.txt).)
 
 [A sample data file](http://s3.amazonaws.com/data.openva.com/corporations/2014-04-23.zip) is available.
 
