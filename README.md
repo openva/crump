@@ -9,7 +9,7 @@ A parser for [the Virginia State Corporation Commission's business entity record
 ## To Do
 
 * [x] Create a tool that will break the file up into its 9 constituent files, which have been rudely concatenated into a single file. This is probably best done in sed or AWK, and can be done based on the length of each line, since each table has, luckily, a unique column count.</del>
-* [ ] [Create a machine-readable mapping of column positions to column names, by file](/openva/crump/issues/4).
+* [ ] [Create a machine-readable mapping of column positions to column names, by file](http://github.com/openva/crump/issues/4).
 * [ ] Figure out what "tables" are and how those come into play. (Those are listed in file 1.) I'm pretty sure that the tables are lookup tables, to maps `WV` to `West Virginia`, among a bunch of other things.
 * [ ] Create a tool that will turn each of the 9 data files into CSV and JSON.
 * [ ] Create an importer that will load this data into Elasticsearch.
