@@ -1,5 +1,5 @@
 FILE 1,,,
-REC-TYPE,2,Record Type = '01' 
+REC-TYPE,A,2,Record Type = '01' 
 TABLE-IDENTIFIER,A,2,Id for Specific Table 
 TABLE-CODE,A,10,Table code 
 TABLE-DESC,A,50,Value for Table Code
