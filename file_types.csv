@@ -1,10 +1,10 @@
 line length,label,file number
-65,table,1
-674,corporate,2
-508,limited partnership,3
-182,amendment,4
-95,corporate officers,5
-120,name,6
-126,merger,7
-335,reserved/registered name,8
-508,LLC,9
+65,Table,1
+674,Corporate,2
+508,Limited Partnership,3
+182,Corporate/Limited Partnership/Limited Liability Company,4
+95,Corporate Officer,5
+120,Corporate/Limited Partnership/Limited Liability Company Name,6
+126,Merger,7
+335,Corporate/Limited Partnership/Limited Liability Company Reserved/Registered Name,8
+508,Limited Liability Company,9
