@@ -12,6 +12,6 @@ A parser for [the Virginia State Corporation Commission's business entity record
 * [ ] [Create a machine-readable mapping of column positions to column names, by file](http://github.com/openva/crump/issues/4).
 * [ ] Figure out what "tables" are and how those come into play. (Those are listed in file 1.) I'm pretty sure that the tables are lookup tables, to maps `WV` to `West Virginia`, among a bunch of other things.
 * [ ] Create a tool that will turn each of the 9 data files into CSV and JSON.
-* [ ] Script the retrieval of the file (updated weekly, late on Tuesdays) and storage of it at a stable URL, plus archiving of past versions.
+* [ ] Script the retrieval of the file (updated weekly, shortly after 1:00 AM on Wednesdays) and storage of it at a stable URL, plus archiving of past versions.
 * [ ] Create an importer that will load this data into Elasticsearch.
 * [ ] Create a website to search for, retrieve, display records.
