@@ -1,0 +1,270 @@
+- field:
+    name:        REC-TYPE
+    type:        A
+    start:       0
+    length:      2
+    description: Record Type = '02'
+- field:
+    name:        CORP-ID
+    type:        A
+    start:       3
+    length:      7
+    description: Unique number assigned to Corp
+- field:
+    name:        CORP-NAME
+    type:        A
+    start:       10
+    length:      100
+    description: Name of Corporation
+- field:
+    name:        CORP-STATUS
+    type:        A
+    start:       110
+    length:      2
+    description: Corporation Status
+    table_code: true
+- field:
+    name:        CORP-STATUS-DATE
+    type:        
+    start:       112
+    length:      8
+    description: Date of Last Status Change
+- field:
+    name:        CORP-PER-DUR
+    type:        N
+    start:       120
+    length:      8
+    description: Date on which Corp will expire
+- field:
+    name:        CORP-INC-DATE
+    type:        N
+    start:       128
+    length:      8
+    description: Date of Incorporation
+- field:
+    name:        CORP-STATE-INC
+    type:        A
+    start:       136
+    length:      2
+    description: State of Incorporation
+    table_code: true
+- field:
+    name:        CORP-IND-CODE
+    type:        A
+    start:       138
+    length:      2
+    description: Industry Code
+    table_code: true
+- field:
+    name:        CORP-STREET1
+    type:        A
+    start:       140
+    length:      45
+    description: Principal Street
+- field:
+    name:        CORP-STREET2
+    type:        A
+    start:       145
+    length:      45
+    description: Principal Street
+- field:
+    name:        CORP-CITY
+    type:        A
+    start:       190
+    length:      23
+    description: Principal City
+- field:
+    name:        CORP-STATE
+    type:        A
+    start:       213
+    length:      2
+    description: Principal State
+- field:
+    name:        CORP-ZIP
+    type:        N
+    start:       215
+    length:      9
+    description: Principal Zip
+- field:
+    name:        CORP-PO-EFF-DATE
+    type:        N
+    start:       224
+    length:      8
+    description: Effective date of Principal address
+- field:
+    name:        CORP-RA-NAME
+    type:        A
+    start:       334
+    length:      100
+    description: Registered Agent
+- field:
+    name:        CORP-RA-STREET1
+    type:        A
+    start:       379
+    length:      45
+    description: RA Street
+- field:
+    name:        CORP-RA-STREET2
+    type:        A
+    start:       424
+    length:      45
+    description: RA Street
+- field:
+    name:        CORP-RA-CITY
+    type:        A
+    start:       469
+    length:      23
+    description: RA City
+- field:
+    name:        CORP-RA-STATE
+    type:        A
+    start:       492
+    length:      2
+    description: RA State
+- field:
+    name:        CORP-RA-ZIP
+    type:        N
+    start:       294
+    length:      9
+    description: RA Zip
+- field:
+    name:        CORP-RA-EFF-DATE
+    type:        N
+    start:       503
+    length:      8
+    description: Effective date of RA
+- field:
+    name:        CORP-RA-STATUS
+    type:        A
+    start:       511
+    length:      1
+    description: RA Status
+    table_code: true
+- field:
+    name:        CORP-RA-LOC
+    type:        A
+    start:       512
+    length:      3
+    description: RA Court Locality
+    table_code: true
+- field:
+    name:        CORP-STOCK-IND
+    type:        A
+    start:       515
+    length:      1
+    description: Stock Indicator
+- field:
+    name:        CORP-TOTAL-SHARES
+    type:        N
+    start:       516
+    length:      11
+    description: Total Shares of Stock
+- field:
+    name:        CORP-MERGER-IND
+    type:        A
+    start:       527
+    length:      1
+    description: Merger Indicator
+- field:
+    name:        CORP-ASMT-IND
+    type:        A
+    start:       528
+    length:      1
+    description: Assessment Indicator
+    table_code: true
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       536
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       547
+    length:      11
+    description: Number of Shares
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       555
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       566
+    length:      11
+    description: Number of Shares
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       574
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       575
+    length:      11
+    description: Number of Shares
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       583
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       594
+    length:      11
+    description: Number of Shares
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       605
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       613
+    length:      11
+    description: Number of Shares
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       624
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       632
+    length:      11
+    description: Number of Shares
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       643
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       651
+    length:      11
+    description: Number of Shares
+- field:
+    name:        CORP-STOCK-CLASS
+    type:        A
+    start:       662
+    length:      8
+    description: Stock Class
+- field:
+    name:        CORP-STOCK-SHARE-AUTH
+    type:        N
+    start:       671
+    length:      11
+    description: Number of Shares
