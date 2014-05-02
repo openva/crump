@@ -32,13 +32,6 @@ HALF_LENGTH=`echo "$FILE_LENGTH/2" | bc`
 # File 1, in the order of the master file
 echo Table File
 awk 'length() == 65' cisbemon.txt > $OUTPUT_DIR/1_tables.txt;
-awk '{
-one=substr($0,0,2)
-two=substr($0,3,2)
-three=substr($0,5,10)
-four=substr($0,15,50)
-printf ("%s|%s|%s|%s\n", one, two, three, four)
-}' $OUTPUT_DIR/1_tables.txt > 1_tables.csv
 
 # File 2, in the order of the master file
 echo Corporate File
@@ -74,3 +67,13 @@ awk 'length() == 335' cisbemon.txt > $OUTPUT_DIR/8_registered_names.txt;
 # on line length. Instead, we only check the latter half of the file for lines of this length.
 echo Limited Liability Company File
 tail -$HALF_LENGTH cisbemon.txt |awk 'length() == 508' > $OUTPUT_DIR/9_llc.txt;
+
+# Turn File 1 into structured data
+echo Converting Table File into Tabular Data
+awk '{
+one=substr($0,0,2)
+two=substr($0,3,2)
+three=substr($0,5,10)
+four=substr($0,15,50)
+printf ("%s|%s|%s|%s\n", one, two, three, four)
+}' $OUTPUT_DIR/1_tables.txt > 1_tables.csv
