@@ -1,7 +1,7 @@
 #/bin/bash
 
 # Create an output directory
-$OUTPUT_DIR = "output"
+OUTPUT_DIR="output"
 mkdir -p $OUTPUT_DIR
 
 # Determine the length of the file, since we'll need this later. It's so that we can search
