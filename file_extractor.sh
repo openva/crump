@@ -6,11 +6,8 @@ mkdir -p $2
 # Determine the length of the file, since we'll need this later. It's so that we can search
 # the first half of the file for Limited Partnerships and the second half for Limited Liability
 # Companies.
-#
-# TO DO: We're faking this right now, manually setting the length of one half of the file. That's
-# because rounding numbers in Bash turns out to be surprisingly difficult.
 FILE_LENGTH=`wc -l cisbemon.txt |cut -d " " -f 2`
-HALF_LENGTH=891210
+HALF_LENGTH=`echo "$FILE_LENGTH/2" | bc`
 
 # File 1, in the order of the master file
 echo Table File
