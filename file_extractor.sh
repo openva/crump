@@ -29,43 +29,43 @@ mkdir -p $OUTPUT_DIR
 FILE_LENGTH=`wc -l cisbemon.txt |cut -d " " -f 2`
 HALF_LENGTH=`echo "$FILE_LENGTH/2" | bc`
 
-# File 1, in the order of the master file
-echo Table File
+# Extract file 1 (in the order of the master file).
+echo Extracting Table File
 awk 'length() == 65' cisbemon.txt > $OUTPUT_DIR/1_tables.txt;
 
 # File 2, in the order of the master file
-echo Corporate File
+echo Extracting Corporate File
 awk 'length() == 674' cisbemon.txt > $OUTPUT_DIR/2_corporate.txt;
 
 # File 3, in the order of the master file
-echo Limited Partnership File
+echo Extracting Limited Partnership File
 head -$HALF_LENGTH cisbemon.txt | awk 'length() == 508' > $OUTPUT_DIR/3_lp.txt;
 
 # File 4, in the order of the master file
-echo Corporate/Limited Partnership/Limited Liability Company File
+echo Extracting Corporate/Limited Partnership/Limited Liability Company File
 awk 'length() == 182' cisbemon.txt > $OUTPUT_DIR/4_amendments.txt;
 
 # File 5, in the order of the master file
-echo Corporate Officer File
+echo Extracting Corporate Officer File
 awk 'length() == 95' cisbemon.txt > $OUTPUT_DIR/5_officers.txt;
 
 # File 6, in the order of the master file
-echo Corporate/Limited Partnership/Limited Liability Company Name File
+echo Extracting Corporate/Limited Partnership/Limited Liability Company Name File
 awk 'length() == 120' cisbemon.txt > $OUTPUT_DIR/6_name.txt;
 
 # File 7, in the order of the master file
-echo Merger File
+echo Extracting Merger File
 awk 'length() == 126' cisbemon.txt > $OUTPUT_DIR/7_merger.txt;
 
 # File 8, in the order of the master file
-echo Corporate/Limited Partnership/Limited Liability Company Reserved/Registered Name File
+echo Extracting Corporate/Limited Partnership/Limited Liability Company Reserved/Registered Name File
 awk 'length() == 335' cisbemon.txt > $OUTPUT_DIR/8_registered_names.txt;
 
 # File 9, in the order of the master file
 #
 # The line length is exactly the same as the LP file, so we can't simply create the file based
 # on line length. Instead, we only check the latter half of the file for lines of this length.
-echo Limited Liability Company File
+echo Extracting Limited Liability Company File
 tail -$HALF_LENGTH cisbemon.txt |awk 'length() == 508' > $OUTPUT_DIR/9_llc.txt;
 
 # Turn File 1 into structured data
