@@ -77,3 +77,7 @@ three=substr($0,5,10)
 four=substr($0,15,50)
 printf ("%s|%s|%s|%s\n", one, two, three, four)
 }' $OUTPUT_DIR/1_tables.txt > 1_tables.csv
+
+# Turn File 2 into structured data
+echo Converting Corporate File into Tabular Data
+eval $(parse_yaml table_maps/file_2.yaml "FILE_")
