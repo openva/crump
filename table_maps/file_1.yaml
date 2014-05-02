@@ -1,24 +1,20 @@
-- field:
-    name:        REC-TYPE
-    type:        
-    start:       0
-    length:      2
-    description: Record Type = '01'
-- field:
-    name:        TABLE-IDENTIFIER
-    type:        A
-    start:       3
-    length:      2
-    description: Id for Specific Table
-- field:
-    name:        TABLE-CODE
-    type:        A
-    start:       5
-    length:      10
-    description: Table code
-- field:
-    name:        TABLE-DESC
-    type:        A
-    start:       15
-    length:      50
-    description: Value for Table Code
+- name:        REC-TYPE
+  type:        
+  start:       0
+  length:      2
+  description: Record Type = '01'
+- name:        TABLE-IDENTIFIER
+  type:        A
+  start:       3
+  length:      2
+  description: Id for Specific Table
+- name:        TABLE-CODE
+  type:        A
+  start:       5
+  length:      10
+  description: Table code
+- name:        TABLE-DESC
+  type:        A
+  start:       15
+  length:      50
+  description: Value for Table Code
