@@ -53,174 +53,174 @@
   description: Principal Street
 - name:        CORP-STREET2
   type:        A
-  start:       144
+  start:       184
   length:      45
   description: Principal Street
 - name:        CORP-CITY
   type:        A
-  start:       189
+  start:       229
   length:      23
   description: Principal City
 - name:        CORP-STATE
   type:        A
-  start:       212
+  start:       252
   length:      2
   description: Principal State
 - name:        CORP-ZIP
   type:        N
-  start:       214
+  start:       254
   length:      9
   description: Principal Zip
 - name:        CORP-PO-EFF-DATE
   type:        N
-  start:       223
+  start:       263
   length:      8
   description: Effective date of Principal address
 - name:        CORP-RA-NAME
   type:        A
-  start:       333
+  start:       271
   length:      100
   description: Registered Agent
 - name:        CORP-RA-STREET1
   type:        A
-  start:       378
+  start:       371
   length:      45
   description: RA Street
 - name:        CORP-RA-STREET2
   type:        A
-  start:       423
+  start:       416
   length:      45
   description: RA Street
 - name:        CORP-RA-CITY
   type:        A
-  start:       468
+  start:       461
   length:      23
   description: RA City
 - name:        CORP-RA-STATE
   type:        A
-  start:       491
+  start:       484
   length:      2
   description: RA State
 - name:        CORP-RA-ZIP
   type:        N
-  start:       293
+  start:       486
   length:      9
   description: RA Zip
 - name:        CORP-RA-EFF-DATE
   type:        N
-  start:       502
+  start:       495
   length:      8
   description: Effective date of RA
 - name:        CORP-RA-STATUS
   type:        A
-  start:       510
+  start:       503
   length:      1
   description: RA Status
   table_code:  true
 - name:        CORP-RA-LOC
   type:        A
-  start:       511
+  start:       504
   length:      3
   description: RA Court Locality
   table_code:  true
 - name:        CORP-STOCK-IND
   type:        A
-  start:       514
+  start:       507
   length:      1
   description: Stock Indicator
 - name:        CORP-TOTAL-SHARES
   type:        N
-  start:       515
+  start:       508
   length:      11
   description: Total Shares of Stock
 - name:        CORP-MERGER-IND
   type:        A
-  start:       526
+  start:       519
   length:      1
   description: Merger Indicator
 - name:        CORP-ASMT-IND
   type:        A
-  start:       527
+  start:       520
   length:      1
   description: Assessment Indicator
   table_code:  true
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       535
+  start:       521
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       546
+  start:       529
   length:      11
   description: Number of Shares
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       554
+  start:       540
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       565
+  start:       548
   length:      11
   description: Number of Shares
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       573
+  start:       559
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       574
+  start:       567
   length:      11
   description: Number of Shares
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       582
+  start:       578
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       593
+  start:       586
   length:      11
   description: Number of Shares
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       604
+  start:       597
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       612
+  start:       605
   length:      11
   description: Number of Shares
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       623
+  start:       616
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       631
+  start:       624
   length:      11
   description: Number of Shares
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       642
+  start:       635
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       650
+  start:       643
   length:      11
   description: Number of Shares
 - name:        CORP-STOCK-CLASS
   type:        A
-  start:       661
+  start:       654
   length:      8
   description: Stock Class
 - name:        CORP-STOCK-SHARE-AUTH
   type:        N
-  start:       670
+  start:       662
   length:      11
   description: Number of Shares
