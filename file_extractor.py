@@ -79,7 +79,7 @@ for file in glob.glob("*.yaml"):
 	field_map = yaml.load(stream)
 	
 	# Open a new file to write to.
-	with open(file.replace(".yaml", "") + ".csv", "w") as csv_file:
+	with open(file.replace(".yaml", ".csv"), "w") as csv_file:
 		
 		csv_file.write(csv_header)
 		
