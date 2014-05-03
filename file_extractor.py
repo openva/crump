@@ -16,6 +16,13 @@ import csvkit
 import os
 import glob
 import subprocess
+# Create the output directory.
+try:
+	os.makedirs(output_dir)
+except OSError as exception:
+	if exception.errno != errno.EEXIST:
+		raise
+
 
 # Iterate through all of the YAML table maps and turn them into CSV.
 os.chdir("table_maps/")
