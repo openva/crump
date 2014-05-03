@@ -18,7 +18,7 @@
   start:       109
   length:      2
   description: Corporation Status
-  table_code: true
+  table_code:  true
 - name:        CORP-STATUS-DATE
   type:        
   start:       111
@@ -39,13 +39,13 @@
   start:       135
   length:      2
   description: State of Incorporation
-  table_code: true
+  table_code:  true
 - name:        CORP-IND-CODE
   type:        A
   start:       137
   length:      2
   description: Industry Code
-  table_code: true
+  table_code:  true
 - name:        CORP-STREET1
   type:        A
   start:       139
@@ -116,13 +116,13 @@
   start:       510
   length:      1
   description: RA Status
-  table_code: true
+  table_code:  true
 - name:        CORP-RA-LOC
   type:        A
   start:       511
   length:      3
   description: RA Court Locality
-  table_code: true
+  table_code:  true
 - name:        CORP-STOCK-IND
   type:        A
   start:       514
@@ -143,7 +143,7 @@
   start:       527
   length:      1
   description: Assessment Indicator
-  table_code: true
+  table_code:  true
 - name:        CORP-STOCK-CLASS
   type:        A
   start:       535
