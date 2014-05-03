@@ -58,6 +58,7 @@ with open(master_file) as f:
                     field_names.append(field["name"])
                 field_tuple = tuple(field for field in field_names)
                 csv_writer = csv.DictWriter(the_file, fieldnames=field_tuple)
+                print "Creating",csv_name
             # break the line out into pieces
             line = {}
             for field in current_map:
