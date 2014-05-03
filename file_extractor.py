@@ -14,8 +14,11 @@ output_dir = "output"
 import yaml
 import csvkit
 import os
+import errno
 import glob
 import subprocess
+import math
+
 # Create the output directory.
 try:
 	os.makedirs(output_dir)
@@ -29,6 +32,43 @@ with open(master_file) as f:
 		pass
 	line_count = i + 1
 
+# File 1
+print "Extracting Table File"
+subprocess.call("awk 'length() == 65' cisbemon.txt > " + output_dir + "/1_tables.txt", shell=True);
+
+# File 2
+print "Extracting Corporate File"
+subprocess.call("awk 'length() == 674' cisbemon.txt > " + output_dir + "/2_corporate.txt", shell=True);
+
+# File 3
+print "Extracting Limited Partnership File"
+subprocess.call("head -" + str(int(math.floor(line_count / 2))) + " cisbemon.txt | awk 'length() == 508' > " + output_dir + "/3_lp.txt", shell=True);
+
+# File 4
+print "Extracting Corporate/Limited Partnership/Limited Liability Company File"
+subprocess.call("awk 'length() == 182' cisbemon.txt > " + output_dir + "/4_amendments.txt", shell=True);
+
+# File 5
+print "Extracting Corporate Officer File"
+subprocess.call("awk 'length() == 95' cisbemon.txt > " + output_dir + "/5_officers.txt", shell=True);
+
+# File 6
+print "Extracting Corporate/Limited Partnership/Limited Liability Company Name File"
+subprocess.call("awk 'length() == 120' cisbemon.txt > " + output_dir + "/6_name.txt", shell=True);
+
+# File 7
+print "Extracting Merger File"
+subprocess.call("awk 'length() == 126' cisbemon.txt > " + output_dir + "/7_merger.txt", shell=True);
+
+# File 8
+print "Extracting Corporate/Limited Partnership/Limited Liability Company Reserved/Registered Name File"
+subprocess.call("awk 'length() == 335' cisbemon.txt > " + output_dir + "/8_registered_names.txt", shell=True);
+
+# File 9
+# The line length is exactly the same as the LP file, so we can't simply create the file based
+# on line length. Instead, we only check the latter half of the file for lines of this length.
+print "Extracting Limited Liability Company File"
+subprocess.call("tail -" + str(int(math.floor(line_count / 2))) + " cisbemon.txt |awk 'length() == 508' > " + output_dir + "/9_llc.txt", shell=True);
 
 # Iterate through all of the YAML table maps and turn them into CSV.
 os.chdir("table_maps/")
