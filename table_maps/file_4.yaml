@@ -1,0 +1,147 @@
+- name:        REC-TYPE
+  type:        A
+  start:       0
+  length:      2
+  description: Record Type = '04' 
+- name:        HIST-CORP-ID
+  type:        A
+  start:       2
+  length:      7
+  description: Corporate/LP/LLC Id 
+- name:        HIST-AMEND-IND
+  type:        A
+  start:       9
+  length:      1
+  description: Amend Indicator
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       10
+  length:      1
+  description: Corp/LP/LLC Amend Types
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       11
+  length:      1
+  description: Corp/LP/LLC Amend Types
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       12
+  length:      1
+  description: Corp/LP/LLC Amend Types
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       13
+  length:      1
+  description: Corp/LP/LLC Amend Types
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       14
+  length:      1
+  description: Corp/LP/LLC Amend Types
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       15
+  length:      1
+  description: Corp/LP/LLC Amend Types
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       16
+  length:      1
+  description: Corp/LP/LLC Amend Types
+- name:        HIST-AMEND-TYPE
+  type:        A
+  start:       17
+  length:      1
+  description: Corp/LP/LLC Amend Types
+  type:        A
+  start:       18
+- name:        HIST-AMEND-DATE
+  type:        N
+  start:       19
+  length:      8
+  description: Effective date of Amendment 
+- name:        HIST-STOCK-INFO
+  type:        N
+  start:       27
+  length:      3
+  description: contains count of Occurs for 2 flds below
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       30
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       41
+  length:      8
+  description: Stock Class
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       49
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       60
+  length:      8
+  description: Stock Class
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       68
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       79
+  length:      8
+  description: Stock Class
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       87
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       98
+  length:      8
+  description: Stock Class
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       106
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       117
+  length:      8
+  description: Stock Class
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       125
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       136
+  length:      8
+  description: Stock Class
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       144
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       155
+  length:      8
+  description: Stock Class
+- name:        HIST-OLD-SHARES-AUTH
+  type:        N
+  start:       163
+  length:      11
+  description: Shares Auth
+- name:        HIST-OLD-STOCK-CLASS
+  type:        A
+  start:       174
+  length:      8
+  description: Stock Class
