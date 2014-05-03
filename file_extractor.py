@@ -6,6 +6,10 @@
 # * Add functionality to break up files, as is being done in in the shell script.
 # * If the master file doesn't exist, retrieve it from S3.
 
+# Set some variables up front.
+master_file = "cisbemon.txt"
+output_dir = "output"
+
 # Requires PyYAML <http://pyyaml.org/>
 import yaml
 import csvkit
