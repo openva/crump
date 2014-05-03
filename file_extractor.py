@@ -23,6 +23,12 @@ except OSError as exception:
 	if exception.errno != errno.EEXIST:
 		raise
 
+# Count the number of lines in the master file.
+with open(master_file) as f:
+	for i, l in enumerate(f):
+		pass
+	line_count = i + 1
+
 
 # Iterate through all of the YAML table maps and turn them into CSV.
 os.chdir("table_maps/")
