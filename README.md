@@ -4,7 +4,7 @@ A parser for [the Virginia State Corporation Commission's business entity record
 
 [The file layout](https://www.scc.virginia.gov/clk/files/layout_be.pdf) is documented on the SCC's website as a PDF generated from an ASCII file. (Also available as [not-entirely-formatted ASCII](record_layouts.txt).)
 
-[A sample data file](http://s3.amazonaws.com/data.openva.com/corporations/2014-04-23.zip) is available.
+[A sample data file](http://s3.amazonaws.com/data.openva.com/corporations/2014-04-30.zip) is available.
 
 ## To Do
 
