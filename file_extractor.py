@@ -90,6 +90,7 @@ for file in glob.glob("*.yaml"):
 
 # Now apply each CSV table map to each file. Open each table map and run in2csv to convert the files.
 for file in glob.glob("*.csv"):
+	subprocess.call("in2csv -e us-ascii-f fixed -s " + file + " ../output/" + file.replace(".csv", ".txt") + " > ../output/" + file, shell=True);
 	
 	# Delete the CSV version of this table map (leaving the YAML version).
 	os.remove(file)
