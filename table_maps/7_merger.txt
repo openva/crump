@@ -1,0 +1,35 @@
+- name:        REC-TYPE
+  type:        A
+  start:       0
+  length:      2
+  description: Record  type = '07'
+- name:        MERG-CORP-ID
+  type:        A
+  start:       2
+  length:      7
+  description: Corporate Id
+- name:        MERG-TYPE
+  type:        A
+  start:       9
+  length:      1
+  description: Survivor/Non-Survivor Ind
+- name:        MERG-EFF-DATE
+  type:        N
+  start:       10
+  length:      8
+  description: Effective date of merger
+- name:        MERG-SURV-ID
+  type:        A
+  start:       18
+  length:      7
+  description: Survivor Corp Id
+- name:        MERG-SURV-QUALIFIED
+  type:        A
+  start:       18
+  length:      1
+  description: Survivor Corp Id
+- name:        MERG-FOR-CORP-NAME
+  type:        A
+  start:       25
+  length:      100
+  description: Name of Foreign Corp not qualified in VA
