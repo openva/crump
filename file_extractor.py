@@ -15,6 +15,7 @@ import csvkit
 import os
 import errno
 import glob
+import json
 
 
 def main():
@@ -27,13 +28,13 @@ def main():
 
     field_maps = {}
 
-    for the_file in glob.glob("table_maps/*.yaml"):
-        stream = open(the_file, 'r')
+    for csv_file in glob.glob("table_maps/*.yaml"):
+        stream = open(csv_file, 'r')
 
         # Import the data from YAML.
         field_map = yaml.load(stream)
 
-        head, tail = os.path.split(the_file)
+        head, tail = os.path.split(csv_file)
 
         map_id = tail[0]
         field_maps[map_id] = {}
@@ -44,6 +45,7 @@ def main():
     last_file = ""
     current_map = None
     csv_writer = None
+    json_file = None
     with open(master_file) as f:
         for current_line in enumerate(f):
             file_number = current_line[1][1]
@@ -53,15 +55,18 @@ def main():
                     current_map = field_maps[file_number]["map"]
                     current_name = field_maps[file_number]["name"]
                     csv_name = current_name.replace(".yaml", ".csv")
+                    json_name = current_name.replace(".yaml", ".json")
                     last_file = file_number
-                    the_file = open("output/"+csv_name, 'wb')
+                    csv_file = open("output/"+csv_name, 'wb')
+                    json_file = open("output/"+json_name, 'wb')
                     field_names = []
                     for field in current_map:
                         field_names.append(field["name"])
                     field_tuple = tuple(field for field in field_names)
-                    csv_writer = csvkit.DictWriter(the_file, field_tuple)
+                    csv_writer = csvkit.DictWriter(csv_file, field_tuple)
+
                     csv_writer.writeheader()
-                    print "Creating",csv_name
+                    print "Creating",csv_name.replace(".csv","")
                 # break the line out into pieces
                 line = {}
                 for field in current_map:
@@ -77,7 +82,7 @@ def main():
                     for key in line:
                         line[key] = remove_non_ascii(line[key])
                     csv_writer.writerow(line)
-
+                json.dump(line,json_file)
 # From http://stackoverflow.com/a/1342373/3579517 with slight modification to replace with space
 def remove_non_ascii(s):
     return "".join(i if ord(i)<128 else " " for i in s )
