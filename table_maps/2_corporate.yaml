@@ -38,7 +38,7 @@
   type:        A
   start:       135
   length:      2
-  description: State of Incorporation
+  description: State of Formation
   table_code:  true
 - name:        CORP-IND-CODE
   type:        A
@@ -115,13 +115,13 @@
   type:        A
   start:       503
   length:      1
-  description: RA Status
+  description: Corp Status
   table_code:  true
 - name:        CORP-RA-LOC
   type:        A
   start:       504
   length:      3
-  description: RA Court Locality
+  description: Court Locality
   table_code:  true
 - name:        CORP-STOCK-IND
   type:        A

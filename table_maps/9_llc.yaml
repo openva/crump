@@ -114,7 +114,7 @@
   type:        A
   start:       503
   length:      1
-  description: RA Status 
+  description: Corp Status 
   table_code:  true
 - name:        CORP-RA-LOC
   type:        A
