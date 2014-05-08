@@ -2,57 +2,57 @@
   type:        A
   start:       0
   length:      2
-  description: Record Type = '08' 
+  description: Record Type = '08'
 - name:        RES-NUMBER
   type:        A
   start:       2
   length:      7
-  description: Reserved/Registered Number 
+  description: Reserved/Registered Number
 - name:        RES-TYPE
   type:        A
   start:       9
   length:      1
-  description: Corporate/LP Indicator 
+  description: Corporate/LP Indicator
 - name:        RES-STATUS
   type:        A
   start:       10
   length:      2
-  description: Reserved/Registered Indicator 
+  description: Reserved/Registered Indicator
 - name:        RES-NAME
   type:        A
   start:       12
   length:      100
-  description: Reserved/Registered Name 
+  description: Reserved/Registered Name
 - name:        RES-EXP-DATE
   type:        N
   start:       112
   length:      8
-  description: Expiration Date of Res/Reg Name 
+  description: Expiration Date of Res/Reg Name
 - name:        RES-REQUESTOR
   type:        A
   start:       120
   length:      100
-  description: Name of Requestor Holding Name 
+  description: Name of Requestor Holding Name
 - name:        RES-STREET1
   type:        A
   start:       220
   length:      45
-  description: Street 1 of Requestor 
+  description: Street 1 of Requestor
 - name:        RES-STREET2
   type:        A
   start:       264
   length:      45
-  description: Street 2 of Requestor 
+  description: Street 2 of Requestor
 - name:        RES-CITY
   type:        A
   start:       309
   length:      23
-  description: City of Requestor 
+  description: City of Requestor
 - name:        RES-STATE
   type:        A
   start:       332
   length:      2
-  description: State of Requestor 
+  description: State of Requestor
 - name:        RES-ZIP
   type:        N
   start:       334

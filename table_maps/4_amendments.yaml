@@ -2,12 +2,12 @@
   type:        A
   start:       0
   length:      2
-  description: Record Type = '04' 
+  description: Record Type = '04'
 - name:        HIST-CORP-ID
   type:        A
   start:       2
   length:      7
-  description: Corporate/LP/LLC Id 
+  description: Corporate/LP/LLC Id
 - name:        HIST-AMEND-IND
   type:        A
   start:       9
@@ -59,7 +59,7 @@
   type:        N
   start:       19
   length:      8
-  description: Effective date of Amendment 
+  description: Effective date of Amendment
 - name:        HIST-STOCK-INFO
   type:        N
   start:       27
