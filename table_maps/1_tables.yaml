@@ -1,5 +1,5 @@
 - name:        REC-TYPE
-  type:        
+  type:        A
   start:       0
   length:      2
   description: Record Type = '01'
