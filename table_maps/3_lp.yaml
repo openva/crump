@@ -7,7 +7,7 @@
   type:        A
   start:       2
   length:      1
-  description: Unique number assigned to LP
+  description: Where the corporation was formed
 - name:        CORP-ID
   type:        A
   start:       2
