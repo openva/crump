@@ -7,7 +7,7 @@
   type:        A
   start:       2
   length:      2
-  description: Id for Specific Table
+  description: ID for Specific Table
 - name:        TABLE-CODE
   type:        A
   start:       4
