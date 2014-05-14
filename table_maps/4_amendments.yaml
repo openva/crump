@@ -1,4 +1,4 @@
-- name:        REC-type
+- name:        rec-type
   type:        A
   start:       0
   length:      2
