@@ -1,8 +1,3 @@
-- name:        rec-type
-  type:        A
-  start:       0
-  length:      2
-  description: Record Type = '04'
 - name:        hist-corp-id
   type:        A
   start:       2

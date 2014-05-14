@@ -1,8 +1,3 @@
-- name:        rec-type
-  type:        A
-  start:       0
-  length:      2
-  description: Record Type = '09'
 - name:        corp-id
   type:        A
   start:       2
