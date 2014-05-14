@@ -1,34 +1,34 @@
-- name:        REC-TYPE
+- name:        rec-type
   type:        A
   start:       0
   length:      2
   description: Record  type = '07'
-- name:        MERG-CORP-ID
+- name:        merg-corp-id
   type:        A
   start:       2
   length:      7
   description: Corporate Id
-- name:        MERG-TYPE
+- name:        merg-type
   type:        A
   start:       9
   length:      1
   description: Survivor/Non-Survivor Ind
-- name:        MERG-EFF-DATE
+- name:        merg-eff-date
   type:        N
   start:       10
   length:      8
   description: Effective date of merger
-- name:        MERG-SURV-ID
+- name:        merg-surv-id
   type:        A
   start:       18
   length:      7
   description: Survivor Corp Id
-- name:        MERG-SURV-QUALIFIED
+- name:        merg-surv-qualified
   type:        A
   start:       18
   length:      1
   description: Survivor Corp Id
-- name:        MERG-FOR-CORP-NAME
+- name:        merg-for-corp-name
   type:        A
   start:       25
   length:      100

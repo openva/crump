@@ -1,29 +1,29 @@
-- name:        REC-TYPE
+- name:        rec-type
   type:        A
   start:       0
   length:      2
   description: Record type = '05'
-- name:        DIRC-CORP-ID
+- name:        dirc-corp-ID
   type:        A
   start:       2
   length:      7
   description: Corporate Id
-- name:        DIRC-LAST-NAME
+- name:        dirc-last-name
   type:        A
   start:       9
   length:      30
   description: Officer Last Name
-- name:        DIRC-FIRST-NAME
+- name:        dirc-first-name
   type:        A
   start:       39
   length:      20
   description: Officer First Name
-- name:        DIRC-MIDDLE-NAME
+- name:        dirc-middle-name
   type:        A
   start:       59
   length:      20
   description: Officer Middle Name
-- name:        DIRC-TITLE
+- name:        dirc-title
   type:        A
   start:       79
   length:      15

@@ -1,127 +1,127 @@
-- name:        REC-TYPE
+- name:        rec-type
   type:        A
   start:       0
   length:      2
   description: Record Type = '03'
-- name:        CORP-FORMED
+- name:        corp-formed
   type:        A
   start:       2
   length:      1
   description: Where the corporation was formed
-- name:        CORP-ID
+- name:        corp-id
   type:        A
   start:       2
   length:      7
   description: Unique number assigned to LP
-- name:        CORP-NAME
+- name:        corp-name
   type:        A
   start:       9
   length:      100
   description: Name of Limited Partnership
-- name:        CORP-STATUS
+- name:        corp-status
   type:        A
   start:       109
   length:      2
   description: LP Status
   table_code:  01
-- name:        CORP-STATUS-DATE
+- name:        corp-status-date
   type:        N
   start:       111
   length:      8
   description: Date of Last Status Change
-- name:        CORP-PER-DUR
+- name:        corp-per-dur
   type:        N
   start:       119
   length:      8
   description: Date on which LP will expire
-- name:        CORP-INC-DATE
+- name:        corp-inc-date
   type:        N
   start:       127
   length:      8
   description: Date of Formation
-- name:        CORP-STATE-INC
+- name:        corp-state-inc
   type:        A
   start:       135
   length:      2
   description: State of Formation
   table_code:  02
-- name:        CORP-IND-CODE
+- name:        corp-ind-code
   type:        A
   start:       137
   length:      2
   description: Not used for LP
-- name:        CORP-STREET1
+- name:        corp-street1
   type:        A
   start:       139
   length:      45
   description: Principal Street
-- name:        CORP-STREET2
+- name:        corp-street2
   type:        A
   start:       184
   length:      45
   description: Principal Street
-- name:        CORP-CITY
+- name:        corp-city
   type:        A
   start:       229
   length:      23
   description: Principal City
-- name:        CORP-STATE
+- name:        corp-state
   type:        A
   start:       252
   length:      2
   description: Principal State
-- name:        CORP-ZIP
+- name:        corp-zip
   type:        N
   start:       254
   length:      9
   description: Principal Zip
-- name:        CORP-PO-EFF-DATE
+- name:        corp-po-eff-date
   type:        N
   start:       263
   length:      8
   description: Effective date of Principal address
-- name:        CORP-RA-NAME
+- name:        corp-ra-name
   type:        A
   start:       271
   length:      100
   description: Registered Agent
-- name:        CORP-RA-STREET1
+- name:        corp-ra-street1
   type:        A
   start:       371
   length:      45
   description: RA Street
-- name:        CORP-RA-STREET2
+- name:        corp-ra-street2
   type:        A
   start:       416
   length:      45
   description: RA Street
-- name:        CORP-RA-CITY
+- name:        corp-ra-city
   type:        A
   start:       461
   length:      23
   description: RA City
-- name:        CORP-RA-STATE
+- name:        corp-ra-state
   type:        A
   start:       484
   length:      2
   description: RA State
-- name:        CORP-RA-ZIP
+- name:        corp-ra-ZIP
   type:        N
   start:       486
   length:      9
   description: RA Zip
-- name:        CORP-RA-EFF-DATE
+- name:        corp-ra-eff-date
   type:        N
   start:       495
   length:      8
   description: Effective date of RA
-- name:        CORP-RA-STATUS
+- name:        corp-ra-status
   type:        A
   start:       503
   length:      1
   description: Corp RA Status
   table_code:  04
-- name:        CORP-RA-LOC
+- name:        corp-ra-loc
   type:        A
   start:       504
   length:      3

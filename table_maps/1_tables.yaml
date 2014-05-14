@@ -1,19 +1,19 @@
-- name:        REC-TYPE
+- name:        rec-type
   type:        A
   start:       0
   length:      2
   description: Record Type = '01'
-- name:        TABLE-IDENTIFIER
+- name:        table-identifier
   type:        A
   start:       2
   length:      2
   description: ID for Specific Table
-- name:        TABLE-CODE
+- name:        table-code
   type:        A
   start:       4
   length:      10
   description: Table code
-- name:        TABLE-DESC
+- name:        table-desc
   type:        A
   start:       14
   length:      50

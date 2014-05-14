@@ -1,24 +1,24 @@
-- name:        REC-TYPE
+- name:        rec-type
   type:        A
   start:       0
   length:      2
   description: Record Type = '06'
-- name:        NAME-CORP-ID
+- name:        name-corp-id
   type:        A
   start:       2
   length:      7
   description: Corp/LP/LLC Id
-- name:        NAME-STATUS
+- name:        name-status
   type:        A
   start:       9
   length:      2
   description: Name Status
-- name:        NAME-CORP-NAME
+- name:        name-corp-name
   type:        A
   start:       11
   length:      100
   description: Corp/LP/LLC Name
-- name:        NAME-EFF-DATE
+- name:        name-eff-date
   type:        N
   start:       111
   length:      8
