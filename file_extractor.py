@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-# TO DO
-# * Add sanity checks -- make sure that we have read and write permissions.
-# * Make sure that files and directories exist. If they don't, create them.
-# * If the master file doesn't exist, retrieve it from S3.
-
 # Set some variables up front.
 master_file = "cisbemon.txt"
 output_dir = "output"
