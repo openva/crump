@@ -95,7 +95,7 @@ def main():
                     json.dump(line,entity_json_file);                
                 json.dump(line,json_file)
                 # Add a separating comma between elements.
-                json_file.write(',')
+                json_file.write(',\n')
 # From http://stackoverflow.com/a/1342373/3579517 with slight modification to replace with space
 def remove_non_ascii(s):
     return "".join(i if ord(i)<128 else " " for i in s )
