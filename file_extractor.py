@@ -82,6 +82,8 @@ def main():
                     name = field["name"]
                     end = start + length
                     line[name] = current_line[1][start:end].strip()
+                    if "corp-id" in name:
+                        corp_id = line[name]
                 try:
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
@@ -89,6 +91,13 @@ def main():
                     for key in line:
                         line[key] = remove_non_ascii(line[key])
                     csv_writer.writerow(line)
+                try:
+                    corp_id
+                except NameError:
+                	a = 1
+                else:
+                    entity_json_file = open("output/"+file_number+"/"+corp_id+".json", 'wb')
+                    json.dump(line,entity_json_file);                
                 json.dump(line,json_file)
                 # Add a separating comma between elements.
                 json_file.write(',')
