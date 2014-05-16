@@ -53,7 +53,7 @@ def main():
             file_number = current_line[1][1]
             if file_number in field_maps:
                 if file_number != last_file:
-                	# Terminate the prior JSON file by removing the trailing comma and adding a bracket.
+                    # Terminate the prior JSON file by removing the trailing comma and adding a bracket.
                     if last_file != "":
                         json_file.seek(-1, os.SEEK_END)
                         json_file.truncate()
@@ -71,7 +71,7 @@ def main():
                         field_names.append(field["name"])
                     field_tuple = tuple(field for field in field_names)
                     csv_writer = csvkit.DictWriter(csv_file, field_tuple)
-					
+                    
                     csv_writer.writeheader()
                     print "Creating",csv_name.replace(".csv","")
                     # Start a new JSON file with an opening bracket.
