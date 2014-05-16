@@ -12,11 +12,13 @@ import argparse
 parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
     epilog="https://github.com/openva/crump/")
+parser.add_argument('-a', '--atomize', help="generate millions of per-record JSON files", action='store_true')
 parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: cisbemon.txt)")
 parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV")
 args = parser.parse_args()
 master_file = args.input
 output_dir = args.output
+atomize = args.atomize
 
 def main():
     # Create the output directory.
@@ -91,13 +93,14 @@ def main():
                     for key in line:
                         line[key] = remove_non_ascii(line[key])
                     csv_writer.writerow(line)
-                try:
-                    corp_id
-                except NameError:
-                	a = 1
-                else:
-                    entity_json_file = open("output/"+file_number+"/"+corp_id+".json", 'wb')
-                    json.dump(line,entity_json_file);                
+                if atomize:
+                    try:
+                        corp_id
+                    except NameError:
+                        a = 1
+                    else:
+                        entity_json_file = open("output/"+file_number+"/"+corp_id+".json", 'wb')
+                        json.dump(line,entity_json_file);            
                 json.dump(line,json_file)
                 # Add a separating comma between elements.
                 json_file.write(',\n')
