@@ -13,8 +13,8 @@ parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
     epilog="https://github.com/openva/crump/")
 parser.add_argument('-a', '--atomize', help="generate millions of per-record JSON files", action='store_true')
-parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: %(default)s)")
-parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV")
+parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: %(default)s)", metavar="file.txt")
+parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV", metavar="output_dir")
 args = parser.parse_args()
 master_file = args.input
 output_dir = args.output
