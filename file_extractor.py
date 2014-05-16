@@ -97,7 +97,7 @@ def main():
                     try:
                         corp_id
                     except NameError:
-                        a = 1
+                        pass
                     else:
                         entity_json_file = open("output/"+file_number+"/"+corp_id+".json", 'wb')
                         json.dump(line,entity_json_file);            
