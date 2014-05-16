@@ -89,7 +89,7 @@ def main():
                     for key in line:
                         line[key] = remove_non_ascii(line[key])
                     csv_writer.writerow(line)
-                json.dump(line,json_file,separators=(',',':'))
+                json.dump(line,json_file)
                 # Add a separating comma between elements.
                 json_file.write(',')
 # From http://stackoverflow.com/a/1342373/3579517 with slight modification to replace with space
