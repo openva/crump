@@ -90,7 +90,16 @@ def main():
                         corp_id = line[name]
                     if transform:
                         if "-date" in name:
-                        	line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
+                            line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
+                        if "-zip" in name:
+                            if len(line[name]) == 9:
+                        	    if line[name] == '000000000':
+                        		    line[name] = ''
+                        	    if line[name][-4:] == '0000':
+                        	        line[name] = line[name][:-4]
+                        	    else:
+                        	    	line[name] = line[name][:-4] + '-' + line[name][-4:]
+                        		    
                 try:
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
