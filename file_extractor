@@ -8,6 +8,8 @@ import errno
 import glob
 import json
 import argparse
+import urllib2
+import zipfile
 import sys
 
 parser = argparse.ArgumentParser(
@@ -17,18 +19,43 @@ parser.add_argument('-a', '--atomize', help="generate millions of per-record JSO
 parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: %(default)s)", metavar="file.txt")
 parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV", metavar="output_dir")
 parser.add_argument('-t', '--transform', help="format properly date, ZIP, etc. fields", action='store_true')
+parser.add_argument('-d', '--download', help="download the data file, if missing", action='store_true')
 args = parser.parse_args()
 master_file = args.input
 output_dir = args.output
 atomize = args.atomize
 transform = args.transform
+download = args.download
 
 def main():
     
     # Make sure the master file exists
     if os.path.isfile(master_file) is False:
-        print master_file + " not found"
-        sys.exit()
+        
+        if transform:
+			# If it doesn't exist, download it.
+			from urllib2 import Request, urlopen, URLError, HTTPError
+			url = 'https://s3.amazonaws.com/virginia-business/current.zip'
+			req = Request(url)
+	
+			try:
+				f=urlopen(req)
+				print "Downloading data from " + url
+				local_file = open('current.zip', 'wb')
+				local_file.write(f.read())
+				local_file.close()
+		
+			except HTTPError as e:
+				print "HTTP error " + format(e.code) + ": Could not download " + url
+				sys.exit()
+		
+			# Uncompress the ZIP file.
+			archive = zipfile.ZipFile("current.zip")
+			archive.extract('cisbemon.txt')
+		
+        else:
+		    print "Error: cisbemon.txt data file not found"
+		    sys.exit()
     
     # Create the output directory.
     try:
