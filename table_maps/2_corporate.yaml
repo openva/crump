@@ -15,7 +15,7 @@
   description: Corporation Status
   table_code:  01
 - name:        corp-status-date
-  type:       
+  type:        N
   start:       111
   length:      8
   description: Date of Last Status Change
