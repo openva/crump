@@ -15,10 +15,12 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-a', '--atomize', help="generate millions of per-record JSON files", action='store_true')
 parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: %(default)s)", metavar="file.txt")
 parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV", metavar="output_dir")
+parser.add_argument('-t', '--transform', help="format properly date, ZIP, etc. fields", action='store_true')
 args = parser.parse_args()
 master_file = args.input
 output_dir = args.output
 atomize = args.atomize
+transform = args.transform
 
 def main():
     # Create the output directory.
@@ -86,6 +88,7 @@ def main():
                     line[name] = current_line[1][start:end].strip()
                     if "corp-id" in name:
                         corp_id = line[name]
+                    if transform:
                 try:
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
