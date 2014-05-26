@@ -8,6 +8,7 @@ import errno
 import glob
 import json
 import argparse
+import sys
 
 parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
@@ -23,6 +24,12 @@ atomize = args.atomize
 transform = args.transform
 
 def main():
+    
+    # Make sure the master file exists
+    if os.path.isfile(master_file) is False:
+        print master_file + " not found"
+        sys.exit()
+    
     # Create the output directory.
     try:
         os.makedirs(output_dir)
