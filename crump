@@ -152,9 +152,41 @@ def main():
                 json.dump(line,json_file)
                 # Add a separating comma between elements.
                 json_file.write(',\n')
+
 # From http://stackoverflow.com/a/1342373/3579517 with slight modification to replace with space
 def remove_non_ascii(s):
+    
     return "".join(i if ord(i)<128 else " " for i in s )
+
+# Calculate the checksum digit for a given corporate ID
+def checksum(corp_id):
+    
+    if len(corp_id) != 7:
+        return False
+    
+    if corp_id[:1].isalpha():
+        corp_id = '8' + corp_id[1:]
+    
+    # Rearrange the digits
+    corp_id = corp_id[:1] + corp_id[6:7] + corp_id[1:-1]
+    
+    # Add up the odd digits.
+    checksum = int(corp_id[:1]) + int(corp_id[2:3]) + int(corp_id[4:5]) + int(corp_id[6:7]);
+    
+    # Multiple each even digit by two; if the result is 2 digits, add them to each other.
+    pos = [2, 4, 6]
+    for even in pos:
+	    tmp = int(corp_id[even-1:even]) * 2
+	    if tmp > 9:
+	        tmp = int(tmp[:1]) + int(tmp[:-1])
+	    checksum = int(checksum) + tmp
+	
+	# Subtract the number from 100 and return the least significant digit.
+    checksum = 100 - checksum
+    checksum = str(checksum)
+    checksum = checksum[1:2]
+	
+    return checksum
 
 if __name__ == "__main__":
     main()
