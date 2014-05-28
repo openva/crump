@@ -1,55 +1,55 @@
 - name:        res-number
+  description: Reserved/Registered Number
   type:        A
   start:       2
   length:      7
-  description: Reserved/Registered Number
 - name:        res-type
+  description: Corporate/LP Indicator
   type:        A
   start:       9
   length:      1
-  description: Corporate/LP Indicator
 - name:        res-status
+  description: Reserved/Registered Indicator
   type:        A
   start:       10
   length:      2
-  description: Reserved/Registered Indicator
 - name:        res-name
+  description: Reserved/Registered Name
   type:        A
   start:       12
   length:      100
-  description: Reserved/Registered Name
 - name:        res-exp-date
+  description: Expiration Date of Res/Reg Name
   type:        N
   start:       112
   length:      8
-  description: Expiration Date of Res/Reg Name
 - name:        res-requestor
+  description: Name of Requestor Holding Name
   type:        A
   start:       120
   length:      100
-  description: Name of Requestor Holding Name
 - name:        res-street1
+  description: Street 1 of Requestor
   type:        A
   start:       220
   length:      45
-  description: Street 1 of Requestor
 - name:        res-street2
+  description: Street 2 of Requestor
   type:        A
   start:       264
   length:      45
-  description: Street 2 of Requestor
 - name:        res-city
+  description: City of Requestor
   type:        A
   start:       309
   length:      23
-  description: City of Requestor
 - name:        res-state
+  description: State of Requestor
   type:        A
   start:       332
   length:      2
-  description: State of Requestor
 - name:        res-zip
+  description: Zip of Requestor
   type:        N
   start:       334
   length:      9
-  description: Zip of Requestor

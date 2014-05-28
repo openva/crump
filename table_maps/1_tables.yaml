@@ -1,15 +1,15 @@
 - name:        table-identifier
+  description: ID for Specific Table
   type:        A
   start:       2
   length:      2
-  description: ID for Specific Table
 - name:        table-code
+  description: Table code
   type:        A
   start:       4
   length:      10
-  description: Table code
 - name:        table-desc
+  description: Value for Table Code
   type:        A
   start:       14
   length:      50
-  description: Value for Table Code

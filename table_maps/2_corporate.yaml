@@ -1,221 +1,221 @@
 - name:        corp-id
+  description: Unique number assigned to Corp
   type:        A
   start:       2
   length:      7
-  description: Unique number assigned to Corp
 - name:        corp-name
+  description: Name of Corporation
   type:        A
   start:       9
   length:      100
-  description: Name of Corporation
 - name:        corp-status
+  description: Corporation Status
   type:        A
   start:       109
   length:      2
-  description: Corporation Status
   table_code:  01
 - name:        corp-status-date
+  description: Date of Last Status Change
   type:        N
   start:       111
   length:      8
-  description: Date of Last Status Change
 - name:        corp-per-dur
+  description: Date on which Corp will expire
   type:        N
   start:       119
   length:      8
-  description: Date on which Corp will expire
 - name:        corp-inc-date
+  description: Date of Incorporation
   type:        N
   start:       127
   length:      8
-  description: Date of Incorporation
 - name:        corp-state-inc
+  description: State of Formation
   type:        A
   start:       135
   length:      2
-  description: State of Formation
   table_code:  02
 - name:        corp-ind-code
+  description: Industry Code
   type:        A
   start:       137
   length:      2
-  description: Industry Code
   table_code:  03
 - name:        corp-street1
+  description: Principal Street
   type:        A
   start:       139
   length:      45
-  description: Principal Street
 - name:        corp-street2
+  description: Principal Street
   type:        A
   start:       184
   length:      45
-  description: Principal Street
 - name:        corp-city
+  description: Principal City
   type:        A
   start:       229
   length:      23
-  description: Principal City
 - name:        corp-state
+  description: Principal State
   type:        A
   start:       252
   length:      2
-  description: Principal State
 - name:        corp-zip
+  description: Principal Zip
   type:        N
   start:       254
   length:      9
-  description: Principal Zip
 - name:        corp-po-eff-date
+  description: Effective date of Principal address
   type:        N
   start:       263
   length:      8
-  description: Effective date of Principal address
 - name:        corp-ra-name
+  description: Registered Agent
   type:        A
   start:       271
   length:      100
-  description: Registered Agent
 - name:        corp-ra-street1
+  description: RA Street
   type:        A
   start:       371
   length:      45
-  description: RA Street
 - name:        corp-ra-street2
+  description: RA Street
   type:        A
   start:       416
   length:      45
-  description: RA Street
 - name:        corp-ra-city
+  description: RA City
   type:        A
   start:       461
   length:      23
-  description: RA City
 - name:        corp-ra-state
+  description: RA State
   type:        A
   start:       484
   length:      2
-  description: RA State
 - name:        corp-ra-zip
+  description: RA Zip
   type:        N
   start:       486
   length:      9
-  description: RA Zip
 - name:        corp-ra-eff-date
+  description: Effective date of RA
   type:        N
   start:       495
   length:      8
-  description: Effective date of RA
 - name:        corp-ra-status
+  description: Corp RA Status
   type:        A
   start:       503
   length:      1
-  description: Corp RA Status
   table_code:  04
 - name:        corp-ra-loc
+  description: Court Locality
   type:        A
   start:       504
   length:      3
-  description: Court Locality
   table_code:  05
 - name:        corp-stock-ind
+  description: Stock Indicator
   type:        A
   start:       507
   length:      1
-  description: Stock Indicator
 - name:        corp-total-shares
+  description: Total Shares of Stock
   type:        N
   start:       508
   length:      11
-  description: Total Shares of Stock
 - name:        corp-merger-ind
+  description: Merger Indicator
   type:        A
   start:       519
   length:      1
-  description: Merger Indicator
 - name:        corp-asmt-ind
+  description: Assessment Indicator
   type:        A
   start:       520
   length:      1
-  description: Assessment Indicator
   table_code:  07
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       521
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       529
   length:      11
-  description: Number of Shares
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       540
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       548
   length:      11
-  description: Number of Shares
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       559
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       567
   length:      11
-  description: Number of Shares
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       578
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       586
   length:      11
-  description: Number of Shares
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       597
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       605
   length:      11
-  description: Number of Shares
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       616
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       624
   length:      11
-  description: Number of Shares
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       635
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       643
   length:      11
-  description: Number of Shares
 - name:        corp-stock-class
+  description: Stock Class
   type:        A
   start:       654
   length:      8
-  description: Stock Class
 - name:        corp-stock-share-auth
+  description: Number of Shares
   type:        N
   start:       662
   length:      11
-  description: Number of Shares

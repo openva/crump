@@ -1,20 +1,20 @@
 - name:        name-corp-id
+  description: Corp/LP/LLC Id
   type:        A
   start:       2
   length:      7
-  description: Corp/LP/LLC Id
 - name:        name-status
+  description: Name Status
   type:        A
   start:       9
   length:      2
-  description: Name Status
 - name:        name-corp-name
+  description: Corp/LP/LLC Name
   type:        A
   start:       11
   length:      100
-  description: Corp/LP/LLC Name
 - name:        name-eff-date
+  description: Effective Date of Name
   type:        N
   start:       111
   length:      8
-  description: Effective Date of Name
