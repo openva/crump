@@ -112,6 +112,7 @@ def main():
                     print "Creating",csv_name.replace(".csv","")
                     # Start a new JSON file with an opening bracket.
                     json_file.write('[')
+                
                 # break the line out into pieces
                 line = {}
                 for field in current_map:
@@ -137,7 +138,7 @@ def main():
                 try:
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
-                    print "Found an incorrect character in",line,"and hopefully fixed it."
+                    print "Found an incorrect character in",line,"and fixed it, hopefully."
                     for key in line:
                         line[key] = remove_non_ascii(line[key])
                     csv_writer.writerow(line)
