@@ -149,7 +149,7 @@ def main():
                         pass
                     else:
                         entity_json_file = open("output/"+file_number+"/"+corp_id+".json", 'wb')
-                        json.dump(line,entity_json_file);            
+                        json.dump(line,entity_json_file);
                 json.dump(line,json_file)
                 # Add a separating comma between elements.
                 json_file.write(',\n')
