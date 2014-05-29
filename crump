@@ -86,6 +86,8 @@ def main():
     json_file = None
     with open(master_file) as f:
         for current_line in enumerate(f):
+        	
+        	# The file number is the first character on each line.
             file_number = current_line[1][1]
             
             # If we're outputting millions of JSON files, make sure the directory exists.
@@ -97,13 +99,15 @@ def main():
                     os.mkdir(dir)
                 
             if file_number in field_maps:
+                
+                # If we've begun a new file.
                 if file_number != last_file:
-                    # Terminate the prior JSON file by removing the trailing comma and adding a bracket.
                     if last_file != "":
                         json_file.seek(-1, os.SEEK_END)
                         json_file.truncate()
                         json_file.write(']')
-                    # new file - grab proper field map and do file setup
+                   
+                    # This is a new file: retrieve the correct field map and setup the file.
                     current_map = field_maps[file_number]["map"]
                     current_name = field_maps[file_number]["name"]
                     csv_name = current_name.replace(".yaml", ".csv")
@@ -116,9 +120,9 @@ def main():
                         field_names.append(field["name"])
                     field_tuple = tuple(field for field in field_names)
                     csv_writer = csvkit.DictWriter(csv_file, field_tuple)
-                    
                     csv_writer.writeheader()
                     print "Creating",csv_name.replace(".csv","")
+                    
                     # Start a new JSON file with an opening bracket.
                     json_file.write('[')
                 
