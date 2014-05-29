@@ -87,6 +87,15 @@ def main():
     with open(master_file) as f:
         for current_line in enumerate(f):
             file_number = current_line[1][1]
+            
+            # If we're outputting millions of JSON files, make sure the directory exists.
+            if atomize:
+                dir = "output/" + file_number + "/"
+                try:
+                    os.stat(dir)
+                except:
+                    os.mkdir(dir)
+                
             if file_number in field_maps:
                 if file_number != last_file:
                     # Terminate the prior JSON file by removing the trailing comma and adding a bracket.
