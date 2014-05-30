@@ -21,12 +21,14 @@ parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data 
 parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV", metavar="output_dir")
 parser.add_argument('-t', '--transform', help="format properly date, ZIP, etc. fields", action='store_true')
 parser.add_argument('-d', '--download', help="download the data file, if missing", action='store_true')
+parser.add_argument('-e', '--elasticsearch', help="create Elasticsearch bulk API data", action='store_true')
 args = parser.parse_args()
 master_file = args.input
 output_dir = args.output
 atomize = args.atomize
 transform = args.transform
 download = args.download
+elasticsearch = args.elasticsearch
 
 def main():
     
@@ -193,7 +195,25 @@ def main():
                     else:
                         entity_json_file = open("output/"+file_number+"/"+corp_id+".json", 'wb')
                         json.dump(line,entity_json_file);
+                
+                # If we’re creating Elasticsearch bulk API import files.
+                if elasticsearch:
+                    try:
+                        corp_id
+                    except NameError:
+                        pass
+                    else:
+						index = dict()
+						index['index'] = dict()
+						index['index']['_index'] = 'finance'
+						index['index']['_type'] = file_number
+						index['index']['_id'] = corp_id
+						json.dump(index,json_file)
+						json_file.write(',\n')
+                
+                # Save the JSON data.
                 json.dump(line,json_file)
+                
                 # Add a separating comma between elements.
                 json_file.write(',\n')
 
