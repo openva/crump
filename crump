@@ -115,9 +115,9 @@ def main():
                     
                     # Terminate the prior JSON file: remove the trailing comma and add a bracket.
                     if last_file != "":
-                        json_file.seek(-1, os.SEEK_END)
+                        json_file.seek(-2, os.SEEK_END)
                         json_file.truncate()
-                        json_file.write(']\n')
+                        json_file.write('\n]\n')
                    
                     # This is a new file: retrieve the correct field map and setup the file.
                     current_map = field_maps[file_number]["map"]
