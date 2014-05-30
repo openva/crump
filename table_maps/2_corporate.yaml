@@ -13,7 +13,7 @@
   type:        A
   start:       109
   length:      2
-  table_code:  01
+  table_id:    01
 - name:        corp-status-date
   description: Date of Last Status Change
   type:        N
@@ -34,13 +34,13 @@
   type:        A
   start:       135
   length:      2
-  table_code:  02
+  table_id:    02
 - name:        corp-ind-code
   description: Industry Code
   type:        A
   start:       137
   length:      2
-  table_code:  03
+  table_id:    03
 - name:        corp-street1
   description: Principal Street
   type:        A
@@ -111,13 +111,13 @@
   type:        A
   start:       503
   length:      1
-  table_code:  04
+  table_id:    04
 - name:        corp-ra-loc
   description: Court Locality
   type:        A
   start:       504
   length:      3
-  table_code:  05
+  table_id:    05
 - name:        corp-stock-ind
   description: Stock Indicator
   type:        A
@@ -138,7 +138,7 @@
   type:        A
   start:       520
   length:      1
-  table_code:  07
+  table_id:    07
 - name:        corp-stock-class
   description: Stock Class
   type:        A

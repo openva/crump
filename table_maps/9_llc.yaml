@@ -13,7 +13,7 @@
   type:        A
   start:       109
   length:      2
-  table_code:  01
+  table_id:    01
 - name:        corp-status-date
   description: Date of Last Status Change
   type:        N
@@ -34,7 +34,7 @@
   type:        A
   start:       135
   length:      2
-  table_code:  02
+  table_id:    02
 - name:        corp-ind-code
   description: Industry Code
   type:        A
@@ -110,10 +110,10 @@
   type:        A
   start:       503
   length:      1
-  table_code:  01
+  table_id:    01
 - name:        corp-ra-loc
   description: RA Court Locality
   type:        A
   start:       504
   length:      3
-  table_code:  05
+  table_id:    05
