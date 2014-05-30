@@ -183,6 +183,8 @@ def main():
                     for key in line:
                         line[key] = remove_non_ascii(line[key])
                     csv_writer.writerow(line)
+                
+                # If we’re creating one JSON file for each individual record.
                 if atomize:
                     try:
                         corp_id
