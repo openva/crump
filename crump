@@ -142,6 +142,10 @@ def main():
                     length = int(field["length"])
                     name = field["name"]
                     end = start + length
+                    if 'table_id' in field:
+					    table_id = field["table_id"]
+                    else:
+					    table_id = None
                     line[name] = current_line[1][start:end].strip()
                     if "corp-id" in name:
                         corp_id = line[name]
@@ -162,6 +166,14 @@ def main():
                         	        line[name] = line[name][:-4]
                         	    else:
                         	    	line[name] = line[name][:-4] + '-' + line[name][-4:]
+                        
+                        # Replace shorthand values with the full version, from the lookup table.
+                        if table_id != None:
+                            for index, conversion in enumerate(lookup_table):
+                                if int(conversion["table-identifier"]) == table_id:
+                                    if conversion["table-code"] == line[name]:
+                                        line[name] = conversion["table-desc"]
+                                        break
                         		    
                 try:
                     csv_writer.writerow(line)
