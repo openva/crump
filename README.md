@@ -33,3 +33,7 @@ For general purposes, `./crump -td` is probably the best way to invoke Crump. Th
 * [x] Script the retrieval of the file (updated weekly, shortly after 1:00 AM on Wednesdays) and storage of it at a stable URL, plus archiving of past versions.
 * [x] Create an importer that will load this data into Elasticsearch.
 * [ ] Create a website to search for, retrieve, display records.
+
+
+# License
+Released under [the MIT License](https://github.com/openva/crump/blob/master/LICENSE).
