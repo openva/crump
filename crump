@@ -216,11 +216,59 @@ def main():
                 
                 # Add a separating comma between elements.
                 json_file.write(',\n')
+     
+    # Now that all files are output, break them into Elasticsearch-sized chunks.
+    if elasticsearch:
+        for json_file in glob.glob(output_dir + "/*.json"):
+            chunk(os.path.basename(json_file))
 
 # From http://stackoverflow.com/a/1342373/3579517 with slight modification to replace with space
 def remove_non_ascii(s):
     
     return "".join(i if ord(i)<128 else " " for i in s )
+
+# Split up a file into smaller chunks
+def chunk(filename):
+
+    # This must be an odd number to avoid separating Elasticsearch metadata from corresponding data.
+    max_lines = 230001
+    
+    # Ensure that the specified filename exists.
+    if os.path.isfile(output_dir + '/' + filename) is False:
+    	return False
+    
+    print "Breaking " + output_dir + '/' + filename + " into pieces"
+    
+    # Count the number of lines in the file.
+    num_lines = sum(1 for line in open(output_dir + '/' + filename))
+    
+    # Only bother to break up files with more than 230,000 lines.
+    if num_lines < max_lines:
+        return True
+    
+    i = 0
+    j = 1
+    source_file = open(output_dir + '/' + filename)
+    dest_name = os.path.splitext(filename)[0] + '_' + str(j) + '.json'
+    dest_file = open(output_dir + '/' + dest_name, 'wb')
+    for line in source_file:
+        dest_file.write(line)
+        i += 1
+        if i == max_lines:
+            j += 1
+            i=0
+            
+            # Wrap up the current file.
+            dest_file.write('\n]\n')
+            dest_file.close()
+            
+            # Start a new file.
+            dest_name = os.path.splitext(filename)[0] + '_' + str(j) + '.json'
+            dest_file = open(output_dir + '/' + dest_name, 'wb')
+            dest_file.write('[')
+    
+    source_file.close()
+    
 
 # Calculate the checksum digit for a given corporate ID
 def checksum(corp_id):
