@@ -231,7 +231,7 @@ def remove_non_ascii(s):
 def chunk(filename):
 
     # This must be an odd number to avoid separating Elasticsearch metadata from corresponding data.
-    max_lines = 230001
+    max_lines = 100001
     
     # Ensure that the specified filename exists.
     if os.path.isfile(output_dir + '/' + filename) is False:
@@ -242,7 +242,7 @@ def chunk(filename):
     # Count the number of lines in the file.
     num_lines = sum(1 for line in open(output_dir + '/' + filename))
     
-    # Only bother to break up files with more than 230,000 lines.
+    # Only bother to break up files with more than 100,000 lines.
     if num_lines < max_lines:
         return True
     
