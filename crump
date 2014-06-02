@@ -258,7 +258,9 @@ def chunk(filename):
             j += 1
             i=0
             
-            # Wrap up the current file.
+            # Wrap up the current file, hacking off the trailing comma and adding a closing bracket.
+            dest_file.seek(-2, os.SEEK_END)
+            dest_file.truncate()
             dest_file.write(']')
             dest_file.close()
             
