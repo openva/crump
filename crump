@@ -230,8 +230,8 @@ def remove_non_ascii(s):
 # Split a file into smaller chunks.
 def chunk(filename):
 
-    # This must be an odd number to avoid separating Elasticsearch metadata from corresponding data.
-    max_lines = 100001
+    # This must be an even number to avoid separating Elasticsearch metadata from actual data.
+    max_lines = 100000
     
     # Ensure that the specified filename exists.
     if os.path.isfile(output_dir + '/' + filename) is False:
@@ -259,7 +259,7 @@ def chunk(filename):
             i=0
             
             # Wrap up the current file.
-            dest_file.write('\n]\n')
+            dest_file.write(']')
             dest_file.close()
             
             # Start a new file.
