@@ -193,7 +193,7 @@ def main():
                     except NameError:
                         pass
                     else:
-                        entity_json_file = open("output/"+file_number+"/"+corp_id+".json", 'wb')
+                        entity_json_file = open("output/" + file_number + "/" + corp_id + ".json", 'wb')
                         json.dump(line,entity_json_file);
                 
                 # If we’re creating Elasticsearch bulk API import files.
