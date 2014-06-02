@@ -227,7 +227,7 @@ def remove_non_ascii(s):
     
     return "".join(i if ord(i)<128 else " " for i in s )
 
-# Split up a file into smaller chunks.
+# Split a file into smaller chunks.
 def chunk(filename):
 
     # This must be an odd number to avoid separating Elasticsearch metadata from corresponding data.
@@ -271,7 +271,6 @@ def chunk(filename):
     
     # Delete the original JSON file, now that we have it in pieces.
     os.remove(output_dir + '/' + filename)
-
 
 # Calculate the checksum digit for a given corporate ID
 def checksum(corp_id):
