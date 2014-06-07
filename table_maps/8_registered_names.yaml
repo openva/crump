@@ -66,8 +66,8 @@
   start:       332
   length:      2
 - name:        res-zip
-  description: Zip of Requestor
   alt_name:    zip
+  description: ZIP of Requestor
   type:        N
   start:       334
   length:      9
