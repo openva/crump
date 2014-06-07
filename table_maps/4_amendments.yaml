@@ -66,8 +66,8 @@
   start:       19
   length:      8
 - name:        hist-stock-info
-  description: contains count of Occurs for 2 flds below
   alt_name:    stock-info
+  description: contains count of occurrances for the following fields
   type:        N
   start:       27
   length:      3
