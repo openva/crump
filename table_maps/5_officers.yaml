@@ -4,6 +4,8 @@
   type:        A
   start:       2
   length:      7
+  search: 
+    match:     exact
 - name:        dirc-last-name
   alt_name:    last_name
   description: Officer Last Name

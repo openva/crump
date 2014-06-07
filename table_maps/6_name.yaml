@@ -4,6 +4,8 @@
   type:        A
   start:       2
   length:      7
+  search: 
+    match:     exact
 - name:        name-status
   alt_name:    status
   description: Name Status
@@ -25,3 +27,5 @@
   type:        N
   start:       111
   length:      8
+  search: 
+    type:      date
