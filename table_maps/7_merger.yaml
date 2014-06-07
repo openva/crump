@@ -26,8 +26,8 @@
   start:       18
   length:      7
 - name:        merg-surv-qualified
-  description: Survivor Corp Id
   alt_name:    survivor_qualified
+  description: Survivor qualified in Virginia
   type:        A
   start:       18
   length:      1
