@@ -10,6 +10,8 @@
   type:        A
   start:       2
   length:      7
+  search: 
+    match:     exact
 - name:        corp-name
   alt_name:    name
   description: Name of Limited Partnership
@@ -29,18 +31,24 @@
   type:        N
   start:       111
   length:      8
+  search:
+    type:      date
 - name:        corp-per-dur
   alt_name:    expiration-date
   description: Date on which LP will expire
   type:        N
   start:       119
   length:      8
+  search:
+    type:      date
 - name:        corp-inc-date
   alt_name:    incorporation-date
   description: Date of Formation
   type:        N
   start:       127
   length:      8
+  search:
+    type:      date
 - name:        corp-state-inc
   alt_name:    state-formed
   description: State of Formation
@@ -48,6 +56,8 @@
   start:       135
   length:      2
   table_id:    02
+  search:
+    match:     exact
 - name:        corp-ind-code
   alt_name:    industry
   description: Not used for LP
@@ -78,6 +88,8 @@
   type:        A
   start:       252
   length:      2
+  search:
+    match:     exact
 - name:        corp-zip
   alt_name:    zip
   description: Principal Zip
@@ -90,6 +102,8 @@
   type:        N
   start:       263
   length:      8
+  search:
+    type:      date
 - name:        corp-ra-name
   alt_name:    agent-name
   description: Registered Agent
@@ -120,6 +134,8 @@
   type:        A
   start:       484
   length:      2
+  search:
+    match:     exact
 - name:        corp-ra-ZIP
   alt_name:    agent-zip
   description: RA Zip
@@ -132,6 +148,8 @@
   type:        N
   start:       495
   length:      8
+  search:
+    type:      date
 - name:        corp-ra-status
   alt_name:    agent-status
   description: Corp RA Status

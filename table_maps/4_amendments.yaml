@@ -4,6 +4,8 @@
   type:        A
   start:       2
   length:      7
+  search:
+    match:     exact
 - name:        hist-amend-ind
   alt_name:    amended
   description: Amend Indicator
@@ -65,6 +67,8 @@
   type:        N
   start:       19
   length:      8
+  search:
+    type:      date
 - name:        hist-stock-info
   alt_name:    stock-info
   description: contains count of occurrances for the following fields
@@ -77,6 +81,8 @@
   type:        N
   start:       30
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
@@ -89,6 +95,8 @@
   type:        N
   start:       49
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
@@ -101,6 +109,8 @@
   type:        N
   start:       68
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
@@ -113,6 +123,8 @@
   type:        N
   start:       87
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
@@ -125,6 +137,8 @@
   type:        N
   start:       106
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
@@ -137,6 +151,8 @@
   type:        N
   start:       125
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
@@ -149,6 +165,8 @@
   type:        N
   start:       144
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
@@ -161,6 +179,8 @@
   type:        N
   start:       163
   length:      11
+  search:
+    type:      int
 - name:        hist-old-stock-class
   alt_name:    stock-class
   description: Stock Class
