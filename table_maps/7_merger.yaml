@@ -10,6 +10,9 @@
   type:        A
   start:       9
   length:      1
+  transform:
+    N:         non-survivor
+    S:         survivor
 - name:        merg-eff-date
   alt_name:    date
   description: Effective date of merger
@@ -28,6 +31,8 @@
   type:        A
   start:       18
   length:      1
+  transform:
+    N:         false
 - name:        merg-for-corp-name
   description: Name of Foreign Corp not qualified in VA
   type:        A
