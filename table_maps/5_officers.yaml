@@ -1,24 +1,29 @@
 - name:        dirc-corp-id
+  alt_name:    id
   description: Corporate Id
   type:        A
   start:       2
   length:      7
 - name:        dirc-last-name
+  alt_name:    last_name
   description: Officer Last Name
   type:        A
   start:       9
   length:      30
 - name:        dirc-first-name
+  alt_name:    first_name
   description: Officer First Name
   type:        A
   start:       39
   length:      20
 - name:        dirc-middle-name
+  alt_name:    middle_name
   description: Officer Middle Name
   type:        A
   start:       59
   length:      20
 - name:        dirc-title
+  alt_name:    title
   description: Officer Title
   type:        A
   start:       79
