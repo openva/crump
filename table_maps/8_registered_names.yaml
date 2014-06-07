@@ -10,12 +10,19 @@
   type:        A
   start:       9
   length:      1
+  transform:
+    C:         corporate
+    L:         limited partnership
+    X:         limited liability corporation
 - name:        res-status
   alt_name:    status
   description: Reserved/Registered Indicator
   type:        A
   start:       10
   length:      2
+  transform:
+    60:        registered
+    61:        reserved
 - name:        res-name
   alt_name:    name
   description: Reserved/Registered Name
