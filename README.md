@@ -4,6 +4,8 @@ A parser for [the Virginia State Corporation Commission's business entity record
 
 Crump retrieves the current SCC records (updated weekly) and turns them into CSV and JSON. Alternately, it can improve the quality of the data (formatting dates, ZIP codes, replacing internal status codes with human-readable translations, etc.), atomize the data into millions of individual JSON files, or create [Elasticsearch-compatible bulk API data](elasticsearch.org/guide/en/elasticsearch/reference/current/docs-bulk.html).
 
+The most recent copy of the raw SCC data can be found at [https://s3.amazonaws.com/virginia-business/current.zip](https://s3.amazonaws.com/virginia-business/current.zip).
+
 ## Usage
 
 ```
