@@ -4,6 +4,8 @@
   type:        A
   start:       2
   length:      7
+  search: 
+    match:     exact
 - name:        res-type
   alt_name:    type
   description: Corporate/LP Indicator
@@ -35,6 +37,8 @@
   type:        N
   start:       112
   length:      8
+  search:
+    type:      date
 - name:        res-requestor
   alt_name:    requestor
   description: Name of Requestor Holding Name
@@ -65,9 +69,13 @@
   type:        A
   start:       332
   length:      2
+  search: 
+    match:     exact
 - name:        res-zip
   alt_name:    zip
   description: ZIP of Requestor
   type:        N
   start:       334
   length:      9
+  search: 
+    match:     exact
