@@ -12,7 +12,7 @@
   type:        A
   start:       9
   length:      2
-  transformations:
+  transform:
     50:        fictitious name
     70:        old name
 - name:        name-corp-name
