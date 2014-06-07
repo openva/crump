@@ -1,122 +1,146 @@
 - name:        corp-formed
+  alt_name:    domestic
   description: Where the corporation was formed
   type:        A
   start:       2
   length:      1
 - name:        corp-id
+  alt_name:    id
   description: Unique number assigned to LP
   type:        A
   start:       2
   length:      7
 - name:        corp-name
+  alt_name:    name
   description: Name of Limited Partnership
   type:        A
   start:       9
   length:      100
 - name:        corp-status
+  alt_name:    status
   description: LP Status
   type:        A
   start:       109
   length:      2
   table_id:    01
 - name:        corp-status-date
+  alt_name:    status-date
   description: Date of Last Status Change
   type:        N
   start:       111
   length:      8
 - name:        corp-per-dur
+  alt_name:    expiration-date
   description: Date on which LP will expire
   type:        N
   start:       119
   length:      8
 - name:        corp-inc-date
+  alt_name:    incorporation-date
   description: Date of Formation
   type:        N
   start:       127
   length:      8
 - name:        corp-state-inc
+  alt_name:    state-formed
   description: State of Formation
   type:        A
   start:       135
   length:      2
   table_id:    02
 - name:        corp-ind-code
+  alt_name:    industry
   description: Not used for LP
   type:        A
   start:       137
   length:      2
 - name:        corp-street1
+  alt_name:    street-1
   description: Principal Street
   type:        A
   start:       139
   length:      45
 - name:        corp-street2
+  alt_name:    street-2
   description: Principal Street
   type:        A
   start:       184
   length:      45
 - name:        corp-city
+  alt_name:    city
   description: Principal City
   type:        A
   start:       229
   length:      23
 - name:        corp-state
+  alt_name:    state
   description: Principal State
   type:        A
   start:       252
   length:      2
 - name:        corp-zip
+  alt_name:    zip
   description: Principal Zip
   type:        N
   start:       254
   length:      9
 - name:        corp-po-eff-date
+  alt_name:    address-date
   description: Effective date of Principal address
   type:        N
   start:       263
   length:      8
 - name:        corp-ra-name
+  alt_name:    agent-name
   description: Registered Agent
   type:        A
   start:       271
   length:      100
 - name:        corp-ra-street1
+  alt_name:    agent-street-1
   description: RA Street
   type:        A
   start:       371
   length:      45
 - name:        corp-ra-street2
+  alt_name:    agent-street-2
   description: RA Street
   type:        A
   start:       416
   length:      45
 - name:        corp-ra-city
+  alt_name:    agent-city
   description: RA City
   type:        A
   start:       461
   length:      23
 - name:        corp-ra-state
+  alt_name:    agent-state
   description: RA State
   type:        A
   start:       484
   length:      2
 - name:        corp-ra-ZIP
+  alt_name:    agent-zip
   description: RA Zip
   type:        N
   start:       486
   length:      9
 - name:        corp-ra-eff-date
+  alt_name:    agent-date
   description: Effective date of RA
   type:        N
   start:       495
   length:      8
 - name:        corp-ra-status
+  alt_name:    agent-status
   description: Corp RA Status
   type:        A
   start:       503
   length:      1
   table_id:    04
 - name:        corp-ra-loc
+  alt_name:    agent-court-locality
   description: RA Court Locality
   type:        A
   start:       504
