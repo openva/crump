@@ -8,6 +8,9 @@
   type:        A
   start:       9
   length:      2
+  transformations:
+    50:        fictitious name
+    70:        old name
 - name:        name-corp-name
   description: Corp/LP/LLC Name
   type:        A
