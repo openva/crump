@@ -53,6 +53,7 @@
   search:
     match:     exact
 - name:        corp-ind-code
+  alt_name:    industry
   description: Industry Code
   type:        A
   start:       137
@@ -141,14 +142,15 @@
   search:
     type:      date
 - name:        corp-ra-status
+  alt_name:    agent-status
   description: Corp RA Status
   type:        A
   start:       503
   length:      1
   table_id:    04
 - name:        corp-ra-loc
-  description: RA Court Locality
   alt_name:    agent-court-locality
+  description: RA Court Locality
   type:        A
   start:       504
   length:      3
@@ -173,6 +175,7 @@
   start:       519
   length:      1
 - name:        corp-asmt-ind
+  alt_name:    assessment
   description: Assessment Indicator
   type:        A
   start:       520
