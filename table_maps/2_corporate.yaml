@@ -73,8 +73,8 @@
   start:       252
   length:      2
 - name:        corp-zip
-  description: Principal Zip
   alt_name:    zip
+  description: Principal ZIP
   type:        N
   start:       254
   length:      9
@@ -133,7 +133,7 @@
   length:      1
   table_id:    04
 - name:        corp-ra-loc
-  description: Court Locality
+  description: RA Court Locality
   alt_name:    agent-court-locality
   type:        A
   start:       504
