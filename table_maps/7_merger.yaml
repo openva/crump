@@ -1,25 +1,30 @@
 - name:        merg-corp-id
+  alt_name:    id
   description: Corporate Id
   type:        A
   start:       2
   length:      7
 - name:        merg-type
+  alt_name:    type
   description: Survivor/Non-Survivor Ind
   type:        A
   start:       9
   length:      1
 - name:        merg-eff-date
+  alt_name:    date
   description: Effective date of merger
   type:        N
   start:       10
   length:      8
 - name:        merg-surv-id
+  alt_name:    survivor_id
   description: Survivor Corp Id
   type:        A
   start:       18
   length:      7
 - name:        merg-surv-qualified
   description: Survivor Corp Id
+  alt_name:    survivor_qualified
   type:        A
   start:       18
   length:      1
