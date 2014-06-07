@@ -4,6 +4,8 @@
   type:        A
   start:       2
   length:      7
+  search: 
+    match:     exact
 - name:        merg-type
   alt_name:    type
   description: Survivor/Non-Survivor Ind
@@ -13,18 +15,24 @@
   transform:
     N:         non-survivor
     S:         survivor
+  search: 
+    match:     exact
 - name:        merg-eff-date
   alt_name:    date
   description: Effective date of merger
   type:        N
   start:       10
   length:      8
+  search:
+    type:      date
 - name:        merg-surv-id
   alt_name:    survivor_id
   description: Survivor Corp Id
   type:        A
   start:       18
   length:      7
+  search: 
+    match:     exact
 - name:        merg-surv-qualified
   alt_name:    survivor_qualified
   description: Survivor qualified in Virginia
@@ -33,6 +41,8 @@
   length:      1
   transform:
     N:         false
+  search:
+    type:      boolean
 - name:        merg-for-corp-name
   description: Name of Foreign Corp not qualified in VA
   type:        A
