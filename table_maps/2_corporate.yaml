@@ -1,35 +1,42 @@
 - name:        corp-id
+  alt_name:    id
   description: Unique number assigned to Corp
   type:        A
   start:       2
   length:      7
 - name:        corp-name
+  alt_name:    name
   description: Name of Corporation
   type:        A
   start:       9
   length:      100
 - name:        corp-status
+  alt_name:    status
   description: Corporation Status
   type:        A
   start:       109
   length:      2
   table_id:    01
 - name:        corp-status-date
+  alt_name:    status-date
   description: Date of Last Status Change
   type:        N
   start:       111
   length:      8
 - name:        corp-per-dur
+  alt_name:    expiration-date
   description: Date on which Corp will expire
   type:        N
   start:       119
   length:      8
 - name:        corp-inc-date
+  alt_name:    incorporation-date
   description: Date of Incorporation
   type:        N
   start:       127
   length:      8
 - name:        corp-state-inc
+  alt_name:    state-formed
   description: State of Formation
   type:        A
   start:       135
@@ -42,66 +49,79 @@
   length:      2
   table_id:    03
 - name:        corp-street1
+  alt_name:    street-1
   description: Principal Street
   type:        A
   start:       139
   length:      45
 - name:        corp-street2
+  alt_name:    street-2
   description: Principal Street
   type:        A
   start:       184
   length:      45
 - name:        corp-city
+  alt_name:    city
   description: Principal City
   type:        A
   start:       229
   length:      23
 - name:        corp-state
+  alt_name:    state
   description: Principal State
   type:        A
   start:       252
   length:      2
 - name:        corp-zip
   description: Principal Zip
+  alt_name:    zip
   type:        N
   start:       254
   length:      9
 - name:        corp-po-eff-date
+  alt_name:    address-date
   description: Effective date of Principal address
   type:        N
   start:       263
   length:      8
 - name:        corp-ra-name
+  alt_name:    agent-name
   description: Registered Agent
   type:        A
   start:       271
   length:      100
 - name:        corp-ra-street1
+  alt_name:    agent-street-1
   description: RA Street
   type:        A
   start:       371
   length:      45
 - name:        corp-ra-street2
+  alt_name:    agent-street-2
   description: RA Street
   type:        A
   start:       416
   length:      45
 - name:        corp-ra-city
+  alt_name:    agent-city
   description: RA City
   type:        A
   start:       461
   length:      23
 - name:        corp-ra-state
+  alt_name:    agent-state
   description: RA State
   type:        A
   start:       484
   length:      2
 - name:        corp-ra-zip
+  alt_name:    agent-zip
   description: RA Zip
   type:        N
   start:       486
   length:      9
 - name:        corp-ra-eff-date
+  alt_name:    agent-date
   description: Effective date of RA
   type:        N
   start:       495
@@ -114,16 +134,19 @@
   table_id:    04
 - name:        corp-ra-loc
   description: Court Locality
+  alt_name:    agent-court-locality
   type:        A
   start:       504
   length:      3
   table_id:    05
 - name:        corp-stock-ind
+  alt_name:    stock-ind
   description: Stock Indicator
   type:        A
   start:       507
   length:      1
 - name:        corp-total-shares
+  alt_name:    total-shares
   description: Total Shares of Stock
   type:        N
   start:       508
@@ -140,81 +163,97 @@
   length:      1
   table_id:    07
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       521
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       529
   length:      11
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       540
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       548
   length:      11
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       559
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       567
   length:      11
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       578
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       586
   length:      11
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       597
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       605
   length:      11
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       616
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       624
   length:      11
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       635
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       643
   length:      11
 - name:        corp-stock-class
+  alt_name:    stock-class
   description: Stock Class
   type:        A
   start:       654
   length:      8
 - name:        corp-stock-share-auth
+  alt_name:    number-shares
   description: Number of Shares
   type:        N
   start:       662
