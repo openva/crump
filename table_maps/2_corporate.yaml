@@ -89,6 +89,8 @@
   type:        N
   start:       254
   length:      9
+  search: 
+    match:     exact
 - name:        corp-po-eff-date
   alt_name:    address-date
   description: Effective date of Principal address
