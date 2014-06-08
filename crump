@@ -129,7 +129,12 @@ def main():
                     json_file = open("output/"+json_name, 'wb')
                     field_names = []
                     for field in current_map:
-                        field_names.append(field["name"])
+                        # Optionally substitute cleaner field names.
+                        default = field['name']
+                        if (transform and 'alt_name' in field.keys()):
+                    	    field_names.append(field["alt_name"])
+                        else:
+                            field_names.append(field["name"])
                     field_tuple = tuple(field for field in field_names)
                     
                     # Start writing the CSV data.
@@ -144,8 +149,12 @@ def main():
                 line = {}
                 for field in current_map:
                     start = int(field["start"])
-                    length = int(field["length"])
-                    name = field["name"]
+                    length = int(field["length"])                    
+					# Optionally substitute cleaner field names.
+                    if (transform and 'alt_name' in field.keys()):
+					    name = field["alt_name"]
+                    else:
+                        name = field["name"]
                     end = start + length
                     if 'table_id' in field:
 					    table_id = field["table_id"]
