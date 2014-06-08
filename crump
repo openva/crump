@@ -119,7 +119,7 @@ def main():
                         json_file.truncate()
                         json_file.write(']')
                    
-                    # This is a new file: retrieve the correct field map and setup the file.
+                    # This is a new file: retrieve the correct field map and set up the file.
                     current_map = field_maps[file_number]["map"]
                     current_name = field_maps[file_number]["name"]
                     csv_name = current_name.replace(".yaml", ".csv")
