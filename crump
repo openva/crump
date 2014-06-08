@@ -22,6 +22,7 @@ parser.add_argument('-o', '--output', default='output', help="directory for JSON
 parser.add_argument('-t', '--transform', help="format properly date, ZIP, etc. fields", action='store_true')
 parser.add_argument('-d', '--download', help="download the data file, if missing", action='store_true')
 parser.add_argument('-e', '--elasticsearch', help="create Elasticsearch bulk API data", action='store_true')
+parser.add_argument('-m', '--map', help="generate Elasticsearch index map", action='store_true')
 args = parser.parse_args()
 master_file = args.input
 output_dir = args.output
@@ -29,6 +30,7 @@ atomize = args.atomize
 transform = args.transform
 download = args.download
 elasticsearch = args.elasticsearch
+elasticsearch_map = args.map
 
 def main():
     
