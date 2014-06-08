@@ -132,8 +132,8 @@
   search:
     match:     exact
 - name:        corp-ra-zip
-  description: RA Zip
   alt_name:    agent-zip
+  description: RA ZIP
   type:        N
   start:       486
   length:      9
@@ -148,8 +148,8 @@
   search:
     type:      date
 - name:        corp-ra-status
-  description: Corp Status
   alt_name:    agent-status
+  description: RA Status
   type:        A
   start:       503
   length:      1
