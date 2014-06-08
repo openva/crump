@@ -157,11 +157,11 @@ def main():
                     if transform:
                     	
                     	# Format dates properly.
-                        if "-date" in name:
+                        if "date" in name:
                             line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                         
                         # Format ZIP codes properly.
-                        if "-zip" in name:
+                        if "zip" in name:
                             if len(line[name]) == 9:
                         	    if line[name] == '000000000':
                         		    line[name] = ''
