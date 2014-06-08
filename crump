@@ -131,6 +131,8 @@ def main():
                     for field in current_map:
                         field_names.append(field["name"])
                     field_tuple = tuple(field for field in field_names)
+                    
+                    # Start writing the CSV data.
                     csv_writer = csvkit.DictWriter(csv_file, field_tuple)
                     csv_writer.writeheader()
                     print "Creating",csv_name.replace(".csv","")
@@ -138,7 +140,7 @@ def main():
                     # Start a new JSON file with an opening bracket.
                     json_file.write('[')
                 
-                # break the line out into pieces
+                # Break the line up into pieces.
                 line = {}
                 for field in current_map:
                     start = int(field["start"])
