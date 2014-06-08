@@ -1,14 +1,17 @@
 - name:        table-identifier
+  alt_name:    table-identifier
   description: ID for Specific Table
   type:        A
   start:       2
   length:      2
 - name:        table-code
+  alt_name:    table-code
   description: Table code
   type:        A
   start:       4
   length:      10
 - name:        table-desc
+  alt_name:    table-desc
   description: Value for Table Code
   type:        A
   start:       14
