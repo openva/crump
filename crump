@@ -38,29 +38,29 @@ def main():
     if os.path.isfile(master_file) is False:
         
         if transform:
-			# If it doesn't exist, download it.
-			from urllib2 import Request, urlopen, URLError, HTTPError
-			url = 'https://s3.amazonaws.com/virginia-business/current.zip'
-			req = Request(url)
-	
-			try:
-				f=urlopen(req)
-				print "Downloading data from " + url
-				local_file = open('current.zip', 'wb')
-				local_file.write(f.read())
-				local_file.close()
-		
-			except HTTPError as e:
-				print "HTTP error " + format(e.code) + ": Could not download " + url
-				sys.exit()
-		
-			# Uncompress the ZIP file.
-			archive = zipfile.ZipFile("current.zip")
-			archive.extract('cisbemon.txt')
-		
+            # If it doesn't exist, download it.
+            from urllib2 import Request, urlopen, URLError, HTTPError
+            url = 'https://s3.amazonaws.com/virginia-business/current.zip'
+            req = Request(url)
+    
+            try:
+                f=urlopen(req)
+                print "Downloading data from " + url
+                local_file = open('current.zip', 'wb')
+                local_file.write(f.read())
+                local_file.close()
+        
+            except HTTPError as e:
+                print "HTTP error " + format(e.code) + ": Could not download " + url
+                sys.exit()
+        
+            # Uncompress the ZIP file.
+            archive = zipfile.ZipFile("current.zip")
+            archive.extract('cisbemon.txt')
+        
         else:
-		    print "Error: cisbemon.txt data file not found"
-		    sys.exit()
+            print "Error: cisbemon.txt data file not found"
+            sys.exit()
     
     # Create the output directory.
     try:
@@ -83,7 +83,7 @@ def main():
         field_maps[map_id] = {}
         field_maps[map_id]["map"] = field_map
         field_maps[map_id]["name"] = tail
-
+    
     # Count the number of lines in the master file.
     last_file = ""
     current_map = None
@@ -91,8 +91,8 @@ def main():
     json_file = None
     with open(master_file) as f:
         for current_line in enumerate(f):
-        	
-        	# The file number is the first character on each line.
+            
+            # The file number is the first character on each line.
             file_number = current_line[1][1]
             
             # If we're outputting millions of JSON files, make sure the directory exists.
@@ -134,7 +134,7 @@ def main():
                         # Optionally substitute cleaner field names.
                         default = field['name']
                         if (transform and 'alt_name' in field.keys()):
-                    	    field_names.append(field["alt_name"])
+                            field_names.append(field["alt_name"])
                         else:
                             field_names.append(field["name"])
                     field_tuple = tuple(field for field in field_names)
@@ -152,24 +152,24 @@ def main():
                 for field in current_map:
                     start = int(field["start"])
                     length = int(field["length"])                    
-					# Optionally substitute cleaner field names.
+                    # Optionally substitute cleaner field names.
                     if (transform and 'alt_name' in field.keys()):
-					    name = field["alt_name"]
+                        name = field["alt_name"]
                     else:
                         name = field["name"]
                     end = start + length
                     if 'table_id' in field:
-					    table_id = field["table_id"]
+                        table_id = field["table_id"]
                     else:
-					    table_id = None
+                        table_id = None
                     line[name] = current_line[1][start:end].strip()
                     if "corp-id" in name:
                         corp_id = line[name]
                     
                     # If we have elected, via command-line option, to transform field contents.
                     if transform:
-                    	
-                    	# Format dates properly.
+                        
+                        # Format dates properly.
                         if "date" in name:
                             line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                             if line[name] == "0000-00-00":
@@ -178,12 +178,12 @@ def main():
                         # Format ZIP codes properly.
                         if "zip" in name:
                             if len(line[name]) == 9:
-                        	    if line[name] == '000000000':
-                        		    line[name] = ''
-                        	    if line[name][-4:] == '0000':
-                        	        line[name] = line[name][:-4]
-                        	    else:
-                        	    	line[name] = line[name][:-4] + '-' + line[name][-4:]
+                                if line[name] == '000000000':
+                                    line[name] = ''
+                                if line[name][-4:] == '0000':
+                                    line[name] = line[name][:-4]
+                                else:
+                                    line[name] = line[name][:-4] + '-' + line[name][-4:]
                         
                         # Replace shorthand values with the full version, from the lookup table.
                         if table_id != None:
@@ -192,7 +192,7 @@ def main():
                                     if conversion["table-code"] == line[name]:
                                         line[name] = conversion["table-desc"]
                                         break
-                        		    
+                                    
                 try:
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
@@ -218,13 +218,13 @@ def main():
                     except NameError:
                         pass
                     else:
-						index = dict()
-						index['index'] = dict()
-						index['index']['_index'] = 'finance'
-						index['index']['_type'] = file_number
-						index['index']['_id'] = corp_id
-						json.dump(index,json_file)
-						json_file.write(',\n')
+                        index = dict()
+                        index['index'] = dict()
+                        index['index']['_index'] = 'finance'
+                        index['index']['_type'] = file_number
+                        index['index']['_id'] = corp_id
+                        json.dump(index,json_file)
+                        json_file.write(',\n')
                 
                 # Save the JSON data.
                 json.dump(line,json_file)
@@ -236,7 +236,7 @@ def main():
     if elasticsearch:
         for json_file in glob.glob(output_dir + "/*.json"):
             chunk(os.path.basename(json_file))
-
+        
 # From http://stackoverflow.com/a/1342373/3579517 with slight modification to replace with space
 def remove_non_ascii(s):
     
@@ -250,7 +250,7 @@ def chunk(filename):
     
     # Ensure that the specified filename exists.
     if os.path.isfile(output_dir + '/' + filename) is False:
-    	return False
+        return False
     
     print "Breaking " + output_dir + '/' + filename + " into pieces"
     
@@ -307,16 +307,16 @@ def checksum(corp_id):
     # Multiple each even digit by two; if the result is 2 digits, add them to each other.
     pos = [2, 4, 6]
     for even in pos:
-	    tmp = int(corp_id[even-1:even]) * 2
-	    if tmp > 9:
-	        tmp = int(tmp[:1]) + int(tmp[:-1])
-	    checksum = int(checksum) + tmp
-	
-	# Subtract the number from 100 and return the least significant digit.
+        tmp = int(corp_id[even-1:even]) * 2
+        if tmp > 9:
+            tmp = int(tmp[:1]) + int(tmp[:-1])
+        checksum = int(checksum) + tmp
+    
+    # Subtract the number from 100 and return the least significant digit.
     checksum = 100 - checksum
     checksum = str(checksum)
     checksum = checksum[1:2]
-	
+    
     return checksum
 
 if __name__ == "__main__":
