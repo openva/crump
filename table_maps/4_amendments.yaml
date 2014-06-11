@@ -65,7 +65,7 @@
   alt_name:    date
   description: Effective date of Amendment
   type:        N
-  start:       19
+  start:       18
   length:      8
   search:
     type:      date
