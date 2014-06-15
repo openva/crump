@@ -84,6 +84,64 @@ def main():
         field_maps[map_id]["map"] = field_map
         field_maps[map_id]["name"] = tail
     
+    
+    # If an Elasticsearch mapping has been requested via command-line switch.
+    if elasticsearch_map:
+        print "Writing Elasticsearch index maps to " + output_dir + "/elasticsearch_maps/"
+        search_index = dict()
+        
+        # Create the directory in which they'll be stored.
+        try:
+            os.makedirs(output_dir + "/elasticsearch_maps/")
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+        
+        # Iterate through every field and build up our index data.
+        for file_number in field_maps:
+            
+            search_index[file_number] = dict()
+            search_index[file_number]['properties'] = dict()
+            
+            current_map = field_maps[file_number]['map']
+            for map in current_map:
+                    
+                    try:
+                        map['alt_name']
+                    except KeyError:
+                        print file_number
+                        print map
+                        sys.exit()
+                        continue
+                    
+                    name = map['alt_name']
+                    search_index[file_number]['properties'][name] = dict()
+                    
+                    try:
+                        map['search']
+                    except KeyError:
+                        search_index[file_number]['properties'][name]['type'] = 'string'
+                    else:
+                        
+                        try:
+                            map['search']['type']
+                        except KeyError:
+                            search_index[file_number]['properties'][name]['type'] = 'string'
+                        else:
+                            search_index[file_number]['properties'][name]['type'] = map['search']['type']
+                        
+                        try:
+                            map['search']['match']
+                        except KeyError:
+                            pass
+                        else:
+                            if map['search']['match'] == 'exact':
+                                search_index[file_number]['properties'][name]['index'] = 'not_analyzed'
+        
+            file = open(output_dir + "/elasticsearch_maps/" + file_number + "_map.json", 'w')
+            file.write(json.dumps(search_index[file_number], indent = 4))
+            file.close()
+    
     # Count the number of lines in the master file.
     last_file = ""
     current_map = None
