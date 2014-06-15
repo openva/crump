@@ -268,18 +268,12 @@ def main():
                 
                 # If we’re creating Elasticsearch bulk API import files.
                 if elasticsearch:
-                    try:
-                        corp_id
-                    except NameError:
-                        pass
-                    else:
-                        index = dict()
-                        index['index'] = dict()
-                        index['index']['_index'] = 'finance'
-                        index['index']['_type'] = file_number
-                        index['index']['_id'] = corp_id
-                        json.dump(index,json_file)
-                        json_file.write(',\n')
+					index = dict()
+					index['index'] = dict()
+					index['index']['_index'] = 'finance'
+					index['index']['_type'] = file_number
+					json.dump(index,json_file)
+					json_file.write(',\n')
                 
                 # Save the JSON data.
                 json.dump(line,json_file)
