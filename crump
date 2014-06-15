@@ -97,7 +97,7 @@ def main():
             
             # If we're outputting millions of JSON files, make sure the directory exists.
             if atomize:
-                dir = "output/" + file_number + "/"
+                dir = output_dir + '/' + file_number + '/'
                 try:
                     os.stat(dir)
                 except:
@@ -110,7 +110,7 @@ def main():
                 
                     # If we've just finished with file 1, read it into memory to use elsewhere.
                     if last_file == '1':
-                        table_1 = csvkit.CSVKitDictReader(open("output/1_tables.csv", 'rb'))
+                        table_1 = csvkit.CSVKitDictReader(open(output_dir + "/1_tables.csv", 'rb'))
                         lookup_table = []
                         for row in table_1:
                             lookup_table.append(row)
