@@ -26,7 +26,7 @@
   search:
     type:      date
 - name:        merg-surv-id
-  alt_name:    survivor_id
+  alt_name:    survivor-id
   description: Survivor Corp Id
   type:        A
   start:       18
@@ -34,7 +34,7 @@
   search: 
     match:     exact
 - name:        merg-surv-qualified
-  alt_name:    survivor_qualified
+  alt_name:    survivor-qualified
   description: Survivor qualified in Virginia
   type:        A
   start:       18
@@ -44,6 +44,7 @@
   search:
     type:      boolean
 - name:        merg-for-corp-name
+  alt_name:    unqualified-name
   description: Name of Foreign Corp not qualified in VA
   type:        A
   start:       25

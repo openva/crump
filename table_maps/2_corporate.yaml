@@ -172,6 +172,7 @@
   search:
     type:      int
 - name:        corp-merger-ind
+  alt_name:    merged
   description: Merger Indicator
   type:        A
   start:       519

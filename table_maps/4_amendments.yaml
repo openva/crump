@@ -37,6 +37,7 @@
   start:       13
   length:      1
 - name:        hist-amend-type
+  alt_name:    amendment-type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       14

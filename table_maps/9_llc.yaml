@@ -20,7 +20,7 @@
   length:      2
   table_id:    01
 - name:        corp-status-date
-  alt_name:    status_date
+  alt_name:    status-date
   description: Date of Last Status Change
   type:        N
   start:       111
@@ -28,7 +28,7 @@
   search: 
     type:      date
 - name:        corp-per-dur
-  alt_name:    expiration_date
+  alt_name:    expiration-date
   description: Date on which LLC will expire
   type:        N
   start:       119
@@ -93,6 +93,7 @@
   search:
     match:     exact
 - name:        corp-po-eff-date
+  alt_name:    address-date
   description: Effective date of Principal address
   type:        N
   start:       263
