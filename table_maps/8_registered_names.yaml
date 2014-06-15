@@ -1,5 +1,5 @@
 - name:        res-number
-  alt_name:    type
+  alt_name:    id
   description: Reserved/Registered Number
   type:        A
   start:       2
