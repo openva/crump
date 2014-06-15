@@ -138,7 +138,7 @@ def main():
                             if map['search']['match'] == 'exact':
                                 search_index[file_number]['properties'][name]['index'] = 'not_analyzed'
         
-            file = open(output_dir + "/elasticsearch_maps/" + file_number + "_map.json", 'w')
+            file = open(output_dir + "/elasticsearch_maps/" + file_number + ".json", 'w')
             file.write(json.dumps(search_index[file_number], indent = 4))
             file.close()
     
