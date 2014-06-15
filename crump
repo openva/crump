@@ -46,7 +46,7 @@ def main():
             try:
                 f=urlopen(req)
                 print "Downloading data from " + url
-                local_file = open('current.zip', 'wb')
+                local_file = open('current.zip', 'w')
                 local_file.write(f.read())
                 local_file.close()
         
@@ -127,8 +127,8 @@ def main():
                     csv_name = current_name.replace(".yaml", ".csv")
                     json_name = current_name.replace(".yaml", ".json")
                     last_file = file_number
-                    csv_file = open("output/"+csv_name, 'wb')
-                    json_file = open("output/"+json_name, 'wb')
+                    csv_file = open(output_dir + "/" + csv_name, 'w')
+                    json_file = open(output_dir + "/" + json_name, 'w')
                     field_names = []
                     for field in current_map:
                         # Optionally substitute cleaner field names.
@@ -208,7 +208,7 @@ def main():
                     except NameError:
                         pass
                     else:
-                        entity_json_file = open("output/" + file_number + "/" + corp_id + ".json", 'wb')
+                        entity_json_file = open(output_dir + "/" + file_number + "/" + corp_id + ".json", 'w')
                         json.dump(line,entity_json_file);
                 
                 # If we’re creating Elasticsearch bulk API import files.
@@ -265,7 +265,7 @@ def chunk(filename):
     j = 1
     source_file = open(output_dir + '/' + filename)
     dest_name = os.path.splitext(filename)[0] + '_' + str(j) + '.json'
-    dest_file = open(output_dir + '/' + dest_name, 'wb')
+    dest_file = open(output_dir + '/' + dest_name, 'w')
     for line in source_file:
         dest_file.write(line)
         i += 1
@@ -281,7 +281,7 @@ def chunk(filename):
             
             # Start a new file.
             dest_name = os.path.splitext(filename)[0] + '_' + str(j) + '.json'
-            dest_file = open(output_dir + '/' + dest_name, 'wb')
+            dest_file = open(output_dir + '/' + dest_name, 'w')
             dest_file.write('[')
     
     source_file.close()
