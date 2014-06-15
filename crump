@@ -109,9 +109,6 @@ def main():
                     try:
                         map['alt_name']
                     except KeyError:
-                        print file_number
-                        print map
-                        sys.exit()
                         continue
                     
                     name = map['alt_name']
