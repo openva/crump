@@ -9,8 +9,9 @@ The most recent copy of the raw SCC data can be found at [https://s3.amazonaws.c
 ## Usage
 
 ```
-crump [-h] [-a] [-i file.txt] [-o output_dir] [-t] [-d] [-e]
+usage: crump [-h] [-a] [-i file.txt] [-o output_dir] [-t] [-d] [-e] [-m]
 
+optional arguments:
   -h, --help            show this help message and exit
   -a, --atomize         generate millions of per-record JSON files
   -i file.txt, --input file.txt
@@ -20,6 +21,7 @@ crump [-h] [-a] [-i file.txt] [-o output_dir] [-t] [-d] [-e]
   -t, --transform       format properly date, ZIP, etc. fields
   -d, --download        download the data file, if missing
   -e, --elasticsearch   create Elasticsearch bulk API data
+  -m, --map             generate Elasticsearch index map
 ```
 
 For general purposes, `./crump -td` is probably the best way to invoke Crump. This will download the current data file and transform the data to make it adhere to basic data quality norms.
