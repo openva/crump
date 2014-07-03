@@ -133,7 +133,7 @@
   search:
     match:     exact
 - name:        corp-ra-zip
-  alt_name:    agent-zip
+  alt_name:    agent_zip
   description: RA ZIP
   type:        N
   start:       486
@@ -141,7 +141,7 @@
   search:
     match:     exact
 - name:        corp-ra-eff-date
-  alt_name:    agent-date
+  alt_name:    agent_date
   description: Effective date of RA
   type:        N
   start:       495
@@ -149,14 +149,14 @@
   search:
     type:      date
 - name:        corp-ra-status
-  alt_name:    agent-status
+  alt_name:    agent_status
   description: RA Status
   type:        A
   start:       503
   length:      1
   table_id:    01
 - name:        corp-ra-loc
-  alt_name:    agent-court-locality
+  alt_name:    agent_court_locality
   description: RA Court Locality
   type:        A
   start:       504

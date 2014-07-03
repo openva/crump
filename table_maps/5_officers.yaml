@@ -7,19 +7,19 @@
   search: 
     match:     exact
 - name:        dirc-last-name
-  alt_name:    last-name
+  alt_name:    last_name
   description: Officer Last Name
   type:        A
   start:       9
   length:      30
 - name:        dirc-first-name
-  alt_name:    first-name
+  alt_name:    first_name
   description: Officer First Name
   type:        A
   start:       39
   length:      20
 - name:        dirc-middle-name
-  alt_name:    middle-name
+  alt_name:    middle_name
   description: Officer Middle Name
   type:        A
   start:       59

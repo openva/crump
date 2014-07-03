@@ -13,49 +13,49 @@
   start:       9
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       10
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       11
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       12
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       13
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       14
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       15
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       16
   length:      1
 - name:        hist-amend-type
-  alt_name:    amendment-type
+  alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       17
@@ -71,13 +71,13 @@
   search:
     type:      date
 - name:        hist-stock-info
-  alt_name:    stock-info
+  alt_name:    stock_info
   description: contains count of occurrances for the following fields
   type:        N
   start:       27
   length:      3
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       30
@@ -85,13 +85,13 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       41
   length:      8
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       49
@@ -99,13 +99,13 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       60
   length:      8
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       68
@@ -113,13 +113,13 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       79
   length:      8
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       87
@@ -127,13 +127,13 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       98
   length:      8
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       106
@@ -141,13 +141,13 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       117
   length:      8
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       125
@@ -155,13 +155,13 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       136
   length:      8
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       144
@@ -169,13 +169,13 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       155
   length:      8
-- name:        hist-old-shares-auth
-  alt_name:    shares-auth
+- name:        hist-old-shares_auth
+  alt_name:    shares_auth
   description: Shares Auth
   type:        N
   start:       163
@@ -183,7 +183,7 @@
   search:
     type:      int
 - name:        hist-old-stock-class
-  alt_name:    stock-class
+  alt_name:    stock_class
   description: Stock Class
   type:        A
   start:       174

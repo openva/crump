@@ -32,7 +32,7 @@
   start:       12
   length:      100
 - name:        res-exp-date
-  alt_name:    date-expires
+  alt_name:    date_expires
   description: Expiration Date of Res/Reg Name
   type:        N
   start:       112
@@ -46,13 +46,13 @@
   start:       120
   length:      100
 - name:        res-street1
-  alt_name:    street-1
+  alt_name:    street_1
   description: Street 1 of Requestor
   type:        A
   start:       220
   length:      45
 - name:        res-street2
-  alt_name:    street-2
+  alt_name:    street_2
   description: Street 2 of Requestor
   type:        A
   start:       264
