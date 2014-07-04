@@ -48,24 +48,28 @@
 - name:        res-street1
   alt_name:    street_1
   description: Street 1 of Requestor
+  group:       address
   type:        A
   start:       220
   length:      45
 - name:        res-street2
   alt_name:    street_2
   description: Street 2 of Requestor
+  group:       address
   type:        A
   start:       264
   length:      45
 - name:        res-city
   alt_name:    city
   description: City of Requestor
+  group:       address
   type:        A
   start:       309
   length:      23
 - name:        res-state
   alt_name:    state
   description: State of Requestor
+  group:       address
   type:        A
   start:       332
   length:      2
@@ -74,6 +78,7 @@
 - name:        res-zip
   alt_name:    zip
   description: ZIP of Requestor
+  group:       address
   type:        N
   start:       334
   length:      9

@@ -62,30 +62,35 @@
 - name:        corp-street1
   alt_name:    street_1
   description: Principal Street
+  group:       address
   type:        A
   start:       139
   length:      45
 - name:        corp-street2
   alt_name:    street_2
   description: Principal Street
+  group:       address
   type:        A
   start:       184
   length:      45
 - name:        corp-city
   alt_name:    city
   description: Principal City
+  group:       address
   type:        A
   start:       229
   length:      23
 - name:        corp-state
   alt_name:    state
   description: Principal State
+  group:       address
   type:        A
   start:       252
   length:      2
 - name:        corp-zip
   alt_name:    zip
   description: Principal ZIP
+  group:       address
   type:        N
   start:       254
   length:      9
@@ -108,30 +113,35 @@
 - name:        corp-ra-street1
   alt_name:    agent_street_1
   description: RA Street
+  group:       ra_address
   type:        A
   start:       371
   length:      45
 - name:        corp-ra-street2
   alt_name:    agent_street_2
   description: RA Street
+  group:       ra_address
   type:        A
   start:       416
   length:      45
 - name:        corp-ra-city
   alt_name:    agent_city
   description: RA City
+  group:       ra_address
   type:        A
   start:       461
   length:      23
 - name:        corp-ra-state
   alt_name:    agent_state
   description: RA State
+  group:       ra_address
   type:        A
   start:       484
   length:      2
 - name:        corp-ra-zip
   alt_name:    agent_zip
-  description: RA Zip
+  description: RA ZIP
+  group:       ra_address
   type:        N
   start:       486
   length:      9
