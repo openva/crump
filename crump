@@ -139,6 +139,11 @@ def main():
             file.write(json.dumps(search_index[file_number], indent = 4))
             file.close()
     
+    # Include our character replacement table.
+    stream = open("character_map.yaml", 'r')
+    global character_map
+    character_map = yaml.load(stream)
+    
     # Count the number of lines in the master file.
     last_file = ""
     current_map = None
