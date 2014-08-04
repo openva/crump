@@ -257,7 +257,8 @@ def main():
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
                     for key in line:
-                        line[key] = replace_non_ascii(line[key])
+                        if line[key] != None:
+                            line[key] = replace_non_ascii(line[key])
                     csv_writer.writerow(line)
                 
                 # If we’re creating one JSON file for each individual record.
