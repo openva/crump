@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-a', '--atomize', help="generate millions of per-record JSON files", action='store_true')
 parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: %(default)s)", metavar="file.txt")
 parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV", metavar="output_dir")
-parser.add_argument('-t', '--transform', help="format properly date, ZIP, etc. fields", action='store_true')
+parser.add_argument('-t', '--transform', help="format properly the date, ZIP, etc. fields", action='store_true')
 parser.add_argument('-d', '--download', help="download the data file, if missing", action='store_true')
 parser.add_argument('-e', '--elasticsearch', help="create Elasticsearch bulk API data", action='store_true')
 parser.add_argument('-m', '--map', help="generate Elasticsearch index map", action='store_true')
