@@ -233,7 +233,7 @@ def main():
                         if "date" in name:
                             line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                             if line[name] == "0000-00-00":
-                                line[name] = 'None'
+                                line[name] = None
                         
                         # Format ZIP codes properly.
                         if "zip" in name:
