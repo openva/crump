@@ -275,7 +275,7 @@ def main():
                 if elasticsearch:
 					index = dict()
 					index['index'] = dict()
-					index['index']['_index'] = 'finance'
+					index['index']['_index'] = 'business'
 					index['index']['_type'] = file_number
 					json.dump(index,json_file)
 					json_file.write(',\n')
