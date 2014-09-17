@@ -9,7 +9,6 @@ import errno
 import glob
 import json
 import argparse
-import urllib2
 import zipfile
 import sys
 
@@ -39,7 +38,7 @@ def main():
         
         if transform:
             # If it doesn't exist, download it.
-            from urllib2 import Request, urlopen, URLError, HTTPError
+            from urllib2 import Request, urlopen, HTTPError
             url = 'https://s3.amazonaws.com/virginia-business/current.zip'
             req = Request(url)
     
@@ -196,7 +195,6 @@ def main():
                     field_names = []
                     for field in current_map:
                         # Optionally substitute cleaner field names.
-                        default = field['name']
                         if (transform and 'alt_name' in field.keys()):
                             field_names.append(field["alt_name"])
                         else:
