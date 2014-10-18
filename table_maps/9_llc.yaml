@@ -20,7 +20,7 @@
   length:      2
   table_id:    01
 - name:        corp-status-date
-  alt_name:    status-date
+  alt_name:    status_date
   description: Date of Last Status Change
   type:        N
   start:       111
@@ -28,7 +28,7 @@
   search: 
     type:      date
 - name:        corp-per-dur
-  alt_name:    expiration-date
+  alt_name:    expiration_date
   description: Date on which LLC will expire
   type:        N
   start:       119
@@ -44,7 +44,7 @@
   search: 
     type:      date
 - name:        corp-state-inc
-  alt_name:    state-formed
+  alt_name:    state_formed
   description: State of Formation
   type:        A
   start:       135
@@ -59,14 +59,14 @@
   start:       137
   length:      2
 - name:        corp-street1
-  alt_name:    street-1
+  alt_name:    street_1
   description: Principal Street
   group:       address
   type:        A
   start:       139
   length:      45
 - name:        corp-street2
-  alt_name:    street-2
+  alt_name:    street_2
   description: Principal Street
   group:       address
   type:        A
@@ -98,7 +98,7 @@
   search:
     match:     exact
 - name:        corp-po-eff-date
-  alt_name:    address-date
+  alt_name:    address_date
   description: Effective date of Principal address
   type:        N
   start:       263
@@ -106,34 +106,34 @@
   search:
     type:      date
 - name:        corp-ra-name
-  alt_name:    agent-name
+  alt_name:    agent_name
   description: Registered Agent
   type:        A
   start:       271
   length:      100
 - name:        corp-ra-street1
-  alt_name:    agent-street-1
+  alt_name:    agent_street_1
   description: RA Street
   group:       ra_address
   type:        A
   start:       371
   length:      45
 - name:        corp-ra-street2
-  alt_name:    agent-street-2
+  alt_name:    agent_street_2
   description: RA Street
   group:       ra_address
   type:        A
   start:       416
   length:      45
 - name:        corp-ra-city
-  alt_name:    agent-city
+  alt_name:    agent_city
   description: RA City
   group:       ra_address
   type:        A
   start:       461
   length:      23
 - name:        corp-ra-state
-  alt_name:    agent-state
+  alt_name:    agent_state
   description: RA State
   group:       ra_address
   type:        A
