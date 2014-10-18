@@ -10,13 +10,16 @@ import time
 import math
 import sqlite3
 
+# Specify the file and the columnar start and end. Realistically, we should be pulling this data out
+# of the YAML table maps, since we specify which collections of fields are address fields. That
+# would obviate the need to specify filenames or column ranges.
 input_file = "2_corporate.csv" //9-13
 file_column_start = 9
 file_column_end = 13
 #input_file = "3_lp.csv" //10-14
 #input_file = "9_llc.csv" //9-13
 
-# We keep track of how many errors the API throws, and stop if there are too many.
+# We keep track of how many consecutive errors the API throws, to stop if there are too many.
 api_error_count = 0
 
 # Note the name of the API that we're using to geocode this data. (We store it in the database.)
@@ -39,7 +42,8 @@ def main():
 	    db.execute("CREATE TABLE addresses(address_hash TEXT PRIMARY KEY NOT NULL, "
 	    + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT)")
     
-    # Consider loading every hash into memory, to avoid lookups prior to each insertion.
+    # Consider optionally loading every hash into memory, to avoid lookups prior to each insertion.
+    # But it's too much to just store as an object. Maybe Reddis or Memcached?
     
     # Start reading from our input file.
     with open(input_file) as f:
