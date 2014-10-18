@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import csvkit
+import os
+import errno
+import glob
+import sys
+import time
+import math
+import sqlite3
+
+input_file = "2_corporate.csv" //9-13
+#input_file = "3_lp.csv" //10-14
+#input_file = "9_llc.csv" //9-13
+
+# We keep track of how many errors the API throws, and stop if there are too many.
+api_error_count = 0
+
+# Note the name of the API that we're using to geocode this data. (We store it in the database.)
+source_api = 'VITA'
+
+def main():
+    
+   # Make sure that we can connect to the database.
+	try:
+	    db = sqlite3.connect('addresses.db')
+	except sqlite3.error, e:
+	    print "Count not connect to SQLite, with error %s:" % e.args[0]
+	    sys.exit(1)
+	
+	# See if the addresses table already exists.
+	db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='addresses'")
+	
+	# If it does not exist, create it.
+	#something something:
+	    db.execute("CREATE TABLE addresses(address_hash TEXT PRIMARY KEY NOT NULL, "
+	    + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT);")
+    
+    # Consider loading every hash into memory, to avoid lookups prior to each insertion.
+    
+    # Start reading from our input file.
+    with open(input_file) as f:
+    
+        # Iterate through the lines in our input file.
+        for current_line in enumerate(f):
+        
+            # Note the time at which we started reading this line, to make sure that we don't hit
+            # the API more than per second.
+            start_time = time.time()
+
+            # Extract the proper columns.
+            
+            # Collapse them with commas and save that as a hash, to save in the database.
+            
+            # If either address_1 or address_2 aren't populated, skip to the next line
+    
+            # if the field containing "state" isn't "VA," skip to the next line
+    
+            # if the hashed, combined string is already stored in the database, skip to the next
+            # line
+        
+            # Quotation marks are sometimes found, but they're unhelpful.
+            
+            # If either address 1 or address 2 is blank, drop it.
+            
+            # If either address field starts with "C/O" or "ATTN:" drop it.
+            
+            # If either address 1 or address 2 contains "P[\.?][\s*])O[\.?] BOX" (or its variants),
+            # and the other field isn't blank, then drop the PO BOX field.
+        
+            # Encode each field as a key/value pair, for our query, Key=[Value], combining address 1
+            # and 2 (if both fields exist) into a single field.
+            
+            # Assemble the URL as http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?Street=7353+IRON+BIT+DR&City=WARRENTON&State=VA&ZIP=20186&maxLocations=1&f=json
+            
+            # Fetch that URL.
+            
+            # If the response is anything other than a 200, increment our error counter and skip to
+            # the next line. (We'll encode this address next time around.)
+            
+            # Reset our error count to zero.
+            api_error_count = 0
+            
+            # If the top result score is below 95, or the address is just a ZIP (indicating that
+            # we're getting the ZIP centroid), then record this as a failure and skip to the next
+            # line.
+                
+            # Convert the coordinates to proper coordinate format.
+                
+            # Save the improved address.
+                
+            # Insert the hashed address, cleaned address, latitude, longitude, timestamp, and source
+            # into the database.
+            db.execute("INSERT INTO addresses VALUES(" + address_hash + ", " + address_cleaned + ", "
+                + latitude + ", " + longitude + ", " + time.time() + ", " + source_api + " )")
+            
+            # Pause long enough that 1 second has elapsed for this loop, to avoid hammering the API.
+            elapsed_time = time.time() - start_time
+            if (elapsed_time) < 1):
+                time.sleep(1 - elapsed_time)
+
+    # Close our database connection.
+    db.close()
+
+if __name__ == "__main__":
+     main()
