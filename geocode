@@ -133,11 +133,11 @@ def main():
             url_parameters['maxLocations'] = '1'
             url_parameters['f'] = 'json'
             url_parameters = urllib.urlencode(url_parameters)
-            print url_parameters
             
             # Assemble the URL.
-            request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?'
+            request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
                 + url_parameters
+            print request_url
             
             # Fetch that URL.
             req = urllib2.Request(request_url)
@@ -154,20 +154,30 @@ def main():
             api_error_count = 0
             
             # Grab the JSON response from the API.
-            address_data = response.read()
+            address_data = json.load(response)
             
             # If the top result score is below 95, or the address is just a ZIP (indicating that
             # we're getting the ZIP centroid), then record this as a failure and skip to the next
             # line.
-                
-            # Convert the coordinates to proper coordinate format.
-                
-            # Save the improved address.
+            if address_data['candidates'][0]['score'] < 95:
+                ### Realistically, we need to store in the database that no solid match could be
+                ### found. Otherwise, we're going to look up this address over and over again.
+                continue
+            
+            if len(address_data['candidates'][0]['address']) < 6:
+                continue
+            
+            final = {}
+            final['address'] = address_data['candidates'][0]['address']
+            final['latitude'] = str(int(address_data['candidates'][0]['location']['x']))
+            final['longitude'] = str(int(address_data['candidates'][0]['location']['y']))
+            final['time'] = str(int(time.time()))
+            print final['time']
                 
             # Insert the hashed address, cleaned address, latitude, longitude, timestamp, and source
             # into the database.
-            #cursor.execute("INSERT INTO addresses VALUES(" + address_hash + ", " + address_cleaned
-            #    + ", " + latitude + ", " + longitude + ", " + time.time() + ", " + source_api + " )")
+            cursor.execute("INSERT INTO addresses (address_hash, address_cleaned, latitude, longitude, date, source) \
+            	VALUES(?, ?, ?, ?, ?, ?)", (address_hash, final['address'], final['latitude'], final['longitude'], final['time'], source_api))
             
             # Pause long enough that 1 second has elapsed for this loop, to avoid hammering the API.
             elapsed_time = time.time() - start_time
