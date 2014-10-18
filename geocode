@@ -37,7 +37,7 @@ def main():
 	# If it does not exist, create it.
 	#something something:
 	    db.execute("CREATE TABLE addresses(address_hash TEXT PRIMARY KEY NOT NULL, "
-	    + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT);")
+	    + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT)")
     
     # Consider loading every hash into memory, to avoid lookups prior to each insertion.
     
