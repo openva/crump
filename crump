@@ -11,6 +11,7 @@ import json
 import argparse
 import zipfile
 import sys
+import sqlite3
 
 parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
@@ -28,39 +29,39 @@ output_dir = args.output
 atomize = args.atomize
 transform = args.transform
 download = args.download
-elasticsearch = args.elasticsearch
+elasticsearch = args.elasticsearc
 elasticsearch_map = args.map
 
 def main():
-    
+
     # Make sure the master file exists
     if os.path.isfile(master_file) is False:
-        
+
         if transform:
             # If it doesn't exist, download it.
             from urllib2 import Request, urlopen, HTTPError
             url = 'https://s3.amazonaws.com/virginia-business/current.zip'
             req = Request(url)
-    
+
             try:
-                f=urlopen(req)
+                f = urlopen(req)
                 print "Downloading data from " + url
                 local_file = open('current.zip', 'w')
                 local_file.write(f.read())
                 local_file.close()
-        
+
             except HTTPError as e:
                 print "HTTP error " + format(e.code) + ": Could not download " + url
                 sys.exit()
-        
+
             # Uncompress the ZIP file.
             archive = zipfile.ZipFile("current.zip")
             archive.extract('cisbemon.txt')
-        
+
         else:
             print "Error: cisbemon.txt data file not found"
             sys.exit()
-    
+
     # Create the output directory.
     try:
         os.makedirs(output_dir)
@@ -82,67 +83,66 @@ def main():
         field_maps[map_id] = {}
         field_maps[map_id]["map"] = field_map
         field_maps[map_id]["name"] = tail
-    
-    
+
     # If an Elasticsearch mapping has been requested via command-line switch.
     if elasticsearch_map:
         print "Writing Elasticsearch index maps to " + output_dir + "/elasticsearch_maps/"
         search_index = dict()
-        
+
         # Create the directory in which they'll be stored.
         try:
             os.makedirs(output_dir + "/elasticsearch_maps/")
         except OSError as exception:
             if exception.errno != errno.EEXIST:
                 raise
-        
+
         # Iterate through every field and build up our index data.
         for file_number in field_maps:
-            
+
             search_index[file_number] = dict()
             search_index[file_number]['properties'] = dict()
-            
+
             current_map = field_maps[file_number]['map']
             for map in current_map:
-                    
+
+                try:
+                    map['alt_name']
+                except KeyError:
+                    continue
+
+                name = map['alt_name']
+                search_index[file_number]['properties'][name] = dict()
+
+                try:
+                    map['search']
+                except KeyError:
+                    search_index[file_number]['properties'][name]['type'] = 'string'
+                else:
+
                     try:
-                        map['alt_name']
-                    except KeyError:
-                        continue
-                    
-                    name = map['alt_name']
-                    search_index[file_number]['properties'][name] = dict()
-                    
-                    try:
-                        map['search']
+                        map['search']['type']
                     except KeyError:
                         search_index[file_number]['properties'][name]['type'] = 'string'
                     else:
-                        
-                        try:
-                            map['search']['type']
-                        except KeyError:
-                            search_index[file_number]['properties'][name]['type'] = 'string'
-                        else:
-                            search_index[file_number]['properties'][name]['type'] = map['search']['type']
-                        
-                        try:
-                            map['search']['match']
-                        except KeyError:
-                            pass
-                        else:
-                            if map['search']['match'] == 'exact':
-                                search_index[file_number]['properties'][name]['index'] = 'not_analyzed'
-        
+                        search_index[file_number]['properties'][name]['type'] = map['search']['type']
+
+                    try:
+                        map['search']['match']
+                    except KeyError:
+                        pass
+                    else:
+                        if map['search']['match'] == 'exact':
+                            search_index[file_number]['properties'][name]['index'] = 'not_analyzed'
+
             file = open(output_dir + "/elasticsearch_maps/" + file_number + ".json", 'w')
-            file.write(json.dumps(search_index[file_number], indent = 4))
+            file.write(json.dumps(search_index[file_number], indent=4))
             file.close()
-    
+
     # Include our character replacement table.
     stream = open("character_map.yaml", 'r')
     global character_map
     character_map = yaml.load(stream)
-    
+
     # Count the number of lines in the master file.
     last_file = ""
     current_map = None
@@ -150,10 +150,10 @@ def main():
     json_file = None
     with open(master_file) as f:
         for current_line in enumerate(f):
-            
+
             # The file number is the first character on each line.
             file_number = current_line[1][1]
-            
+
             # If we're outputting millions of JSON files, make sure the directory exists.
             if atomize:
                 dir = output_dir + '/' + file_number + '/'
@@ -161,29 +161,29 @@ def main():
                     os.stat(dir)
                 except:
                     os.mkdir(dir)
-                
+
             if file_number in field_maps:
-                
+
                 # If we've begun a new file.
                 if file_number != last_file:
-                
+
                     # If we've just finished with file 1, read it into memory to use elsewhere.
                     if last_file == '1':
                         table_1 = csvkit.CSVKitDictReader(open(output_dir + "/1_tables.csv", 'rb'))
                         lookup_table = []
                         for row in table_1:
                             lookup_table.append(row)
-                    
+
                     # Terminate the prior JSON file: remove the trailing comma and add a bracket,
                     # unless this is for Elasticsearch.
                     if last_file != "":
                         json_file.seek(-2, os.SEEK_END)
                         json_file.truncate()
                         try:
-                            elasticsearch
+                            elasticsearc
                         except NameError:
                             json_file.write(']')
-                   
+
                     # This is a new file: retrieve the correct field map and set up the file.
                     current_map = field_maps[file_number]["map"]
                     current_name = field_maps[file_number]["name"]
@@ -195,35 +195,35 @@ def main():
                     field_names = []
                     for field in current_map:
                         # Optionally substitute cleaner field names.
-                        if (transform and 'alt_name' in field.keys()):
+                        if transform and 'alt_name' in field.keys():
                             field_names.append(field["alt_name"])
                         else:
                             field_names.append(field["name"])
                     field_tuple = tuple(field for field in field_names)
-                    
+
                     # Start writing the CSV data.
                     csv_writer = csvkit.DictWriter(csv_file, field_tuple)
                     csv_writer.writeheader()
-                    print "Creating",csv_name.replace(".csv","")
-                    
+                    print "Creating", csv_name.replace(".csv", "")
+
                     # Start a new JSON file with an opening bracket, unless this is for
                     # Elasticsearch data.
                     try:
-                       elasticsearch
+                        elasticsearc
                     except NameError:
-                       json_file.write('[')
-                
+                        json_file.write('[')
+
                 # Break the line up into pieces.
                 line = {}
                 for field in current_map:
                     start = int(field["start"])
                     length = int(field["length"])                    
                     # Optionally substitute cleaner field names.
-                    if (transform and 'alt_name' in field.keys()):
+                    if transform and 'alt_name' in field.keys():
                         name = field["alt_name"]
                     else:
                         name = field["name"]
-                    end = start + length
+                    end = start + lengt
                     if 'table_id' in field:
                         table_id = field["table_id"]
                     else:
@@ -231,16 +231,16 @@ def main():
                     line[name] = current_line[1][start:end].strip()
                     if "corp-id" in name:
                         corp_id = line[name]
-                    
+
                     # If we have elected, via command-line option, to transform field contents.
                     if transform:
-                        
+
                         # Format dates properly.
                         if "date" in name:
                             line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                             if line[name] == "0000-00-00":
                                 line[name] = None
-                        
+
                         # Format ZIP codes properly.
                         if "zip" in name:
                             if len(line[name]) == 9:
@@ -250,7 +250,7 @@ def main():
                                     line[name] = line[name][:-4]
                                 else:
                                     line[name] = line[name][:-4] + '-' + line[name][-4:]
-                        
+
                         # Replace shorthand values with the full version, from the lookup table.
                         if table_id != None:
                             for index, conversion in enumerate(lookup_table):
@@ -258,7 +258,7 @@ def main():
                                     if conversion["table-code"] == line[name]:
                                         line[name] = conversion["table-desc"]
                                         break
-                                    
+
                 try:
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
@@ -266,7 +266,7 @@ def main():
                         if line[key] != None:
                             line[key] = replace_non_ascii(line[key])
                     csv_writer.writerow(line)
-                
+
                 # If we’re creating one JSON file for each individual record.
                 if atomize:
                     try:
@@ -275,26 +275,26 @@ def main():
                         pass
                     else:
                         entity_json_file = open(output_dir + "/" + file_number + "/" + corp_id + ".json", 'w')
-                        json.dump(line,entity_json_file);
-                
+                        json.dump(line, entity_json_file)
+
                 # If we’re creating Elasticsearch bulk API import files.
                 if elasticsearch:
                     index = dict()
                     index['index'] = dict()
                     index['index']['_index'] = 'business'
                     index['index']['_type'] = file_number
-                    json.dump(index,json_file)
+                    json.dump(index, json_file)
                     json_file.write(',\n')
-                
+
                 # Save the JSON data.
-                json.dump(line,json_file)
-                
+                json.dump(line, json_file)
+
                 # Add a separating comma between elements.
                 if elasticsearch:
                    json_file.write('\n')
                 else:
                    json_file.write(',\n')
-     
+
     # Now that all files are output, break them into Elasticsearch-sized chunks.
     if elasticsearch:
         for json_file in glob.glob(output_dir + "/*.json"):
@@ -309,11 +309,11 @@ def replace_non_ascii(s):
             try:
                 replacement = character_map[key[2:]]
             except KeyError:
-                o+=' '
+                o += ' '
             else:
-                o+=replacement
+                o += replacement
         else:
-            o+=i
+            o += i
     return o
 
 # Split a file into smaller chunks.
@@ -321,20 +321,20 @@ def chunk(filename):
 
     # This must be an even number to avoid separating Elasticsearch metadata from actual data.
     max_lines = 100000
-    
+
     # Ensure that the specified filename exists.
     if os.path.isfile(output_dir + '/' + filename) is False:
         return False
-    
+
     print "Breaking " + output_dir + '/' + filename + " into pieces"
-    
+
     # Count the number of lines in the file.
     num_lines = sum(1 for line in open(output_dir + '/' + filename))
-    
+
     # Only bother to break up files with more than 100,000 lines.
     if num_lines < max_lines:
         return True
-    
+
     i = 0
     j = 1
     source_file = open(output_dir + '/' + filename)
@@ -345,39 +345,39 @@ def chunk(filename):
         i += 1
         if i == max_lines:
             j += 1
-            i=0
-            
+            i = 0
+
             # Wrap up the current file, hacking off the trailing comma and adding a closing bracket.
             dest_file.seek(-2, os.SEEK_END)
             dest_file.truncate()
             dest_file.write(']')
             dest_file.close()
-            
+
             # Start a new file.
             dest_name = os.path.splitext(filename)[0] + '_' + str(j) + '.json'
             dest_file = open(output_dir + '/' + dest_name, 'w')
             dest_file.write('[')
-    
+
     source_file.close()
-    
+
     # Delete the original JSON file, now that we have it in pieces.
     os.remove(output_dir + '/' + filename)
 
 # Calculate the checksum digit for a given corporate ID
 def checksum(corp_id):
-    
+
     if len(corp_id) != 7:
         return False
-    
+
     if corp_id[:1].isalpha():
         corp_id = '8' + corp_id[1:]
-    
+
     # Rearrange the digits
     corp_id = corp_id[:1] + corp_id[6:7] + corp_id[1:-1]
-    
+
     # Add up the odd digits.
-    checksum = int(corp_id[:1]) + int(corp_id[2:3]) + int(corp_id[4:5]) + int(corp_id[6:7]);
-    
+    checksum = int(corp_id[:1]) + int(corp_id[2:3]) + int(corp_id[4:5]) + int(corp_id[6:7])
+
     # Multiple each even digit by two; if the result is 2 digits, add them to each other.
     pos = [2, 4, 6]
     for even in pos:
@@ -385,12 +385,12 @@ def checksum(corp_id):
         if tmp > 9:
             tmp = int(tmp[:1]) + int(tmp[:-1])
         checksum = int(checksum) + tmp
-    
+
     # Subtract the number from 100 and return the least significant digit.
     checksum = 100 - checksum
     checksum = str(checksum)
     checksum = checksum[1:2]
-    
+
     return checksum
 
 if __name__ == "__main__":
