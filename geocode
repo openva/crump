@@ -12,6 +12,7 @@ import sqlite3
 import urllib
 import urllib2
 import json
+import hashlib
 
 # Specify the file and the columnar start and end. Realistically, we should be pulling this data out
 # of the YAML table maps, since we specify which collections of fields are address fields. That
@@ -85,11 +86,16 @@ def main():
             start_time = time.time()
             
             # Collapse our address columns and save that as a hash, to save in the database.
-            address_hash = hash(record['street_1'] + "," + record['street_2'] + "," + \
-                record['city'] + "," + record['state'] + "," + record['zip'])
+            address_hash = hashlib.md5(record['street_1'] + "," + record['street_2'] + "," + \
+                record['city'] + "," + record['state'] + "," + record['zip']).hexdigest()
     
-            # if the hashed, combined string is already stored in the database, skip to the next
-            # line
+            # If the hashed, combined string is already stored in the database, skip to the next
+            # address.
+            hash_param = (address_hash,)
+            cursor.execute("SELECT 1 FROM addresses WHERE address_hash = ?", hash_param)
+            exists = cursor.fetchone()
+            if exists is not None:
+                continue
         
             # Remove quotation marks from street addresses.
             record['street_1'] = record['street_1'].replace('"', '')
@@ -98,20 +104,20 @@ def main():
             # If either address field starts with "C/O" or "ATTN:" drop it.
             if record['street_1'][:4].lower() == 'c/o ':
                 del record['street_1']
+            elif record['street_1'][:6].lower() == 'attn: ':
+                del record['street_1']
             if record['street_2'][:4].lower() == 'c/o ':
                 del record['street_2']
-            if record['street_1'][:6].lower() == 'attn: ':
-                del record['street_1']
-            if record['street_2'][:6].lower() == 'attn: ':
+            elif record['street_2'][:6].lower() == 'attn: ':
                 del record['street_2']
             
             # If either address 1 or address 2 contains "P[\.?][\s*])O[\.?] BOX" (or its variants),
             # and the other field isn't blank, then drop the PO BOX field.
             
             # If either address 1 or address 2 is blank, drop it.
-            if record['street_1'] == '':
+            if 'street_1' in 'record' and record['street_1'] == '':
                 del record['street_1']
-            if record['street_2'] == '':
+            if 'street_2' in 'record' and record['street_2'] == '':
                 del record['street_2']
 
             # Encode each field as a key/value pair, for our query, Key=[Value], combining address 1
@@ -137,7 +143,6 @@ def main():
             # Assemble the URL.
             request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
                 + url_parameters
-            print request_url
             
             # Fetch that URL.
             req = urllib2.Request(request_url)
@@ -147,6 +152,8 @@ def main():
             
             # If the URL request fails, increment our error count and skip to the next record.
             except HTTPError as e:
+                sys.stdout.write('✗')
+                sys.stdout.flush()
                 api_error_count += 1
                 continue
             
@@ -169,15 +176,19 @@ def main():
             
             final = {}
             final['address'] = address_data['candidates'][0]['address']
-            final['latitude'] = str(int(address_data['candidates'][0]['location']['x']))
-            final['longitude'] = str(int(address_data['candidates'][0]['location']['y']))
-            final['time'] = str(int(time.time()))
-            print final['time']
+            final['longitude'] = address_data['candidates'][0]['location']['x']
+            final['latitude'] = address_data['candidates'][0]['location']['y']
+            final['time'] = round(time.time())
                 
             # Insert the hashed address, cleaned address, latitude, longitude, timestamp, and source
             # into the database.
-            cursor.execute("INSERT INTO addresses (address_hash, address_cleaned, latitude, longitude, date, source) \
-            	VALUES(?, ?, ?, ?, ?, ?)", (address_hash, final['address'], final['latitude'], final['longitude'], final['time'], source_api))
+            cursor.execute("INSERT INTO addresses VALUES(?, ?, ?, ?, ?, ?)", \
+                (address_hash, final['address'], final['latitude'], final['longitude'], final['time'], source_api))
+            db.commit()
+            
+            # Report success to the terminal.
+            sys.stdout.write('✓')
+            sys.stdout.flush()
             
             # Pause long enough that 1 second has elapsed for this loop, to avoid hammering the API.
             elapsed_time = time.time() - start_time
