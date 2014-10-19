@@ -36,9 +36,10 @@ def main():
 
     # Make sure the master file exists
     if os.path.isfile(master_file) is False:
-
-        if transform:
-            # If it doesn't exist, download it.
+        
+        # If it doesn't exist, download it.
+        if download:
+            
             from urllib2 import Request, urlopen, HTTPError
             url = 'https://s3.amazonaws.com/virginia-business/current.zip'
             req = Request(url)
@@ -61,6 +62,45 @@ def main():
         else:
             print "Error: cisbemon.txt data file not found"
             sys.exit()
+
+        # If we're going to be transforming the data, retrieve (if necessary) and connect to our
+        # database of geocoded addresses.
+        if transform:
+        
+            # Connect to the database of geocoded addresses.
+            try:
+                db = sqlite3.connect('addresses.db')
+            except sqlite3.error, e:
+                print "Count not connect to SQLite, with error %s:" % e.args[0]
+                sys.exit(1)
+
+            # Create a SQLite cursor.
+            cursor = db.cursor()
+
+            # See if the addresses table already exists.
+            cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='addresses'")
+            exists = cursor.fetchone()
+
+            # If the addresses table does not exist, try to retrieve it from a remote cache.
+            if exists is None:
+                 db.close()
+                 from urllib2 import Request, urlopen, HTTPError
+                 url = 'https://s3.amazonaws.com/virginia-business/addresses.db'
+                 req = Request(url)
+
+                 try:
+                     f = urlopen(req)
+                     print "Downloading data from " + url
+                     local_file = open('current.zip', 'w')
+                     local_file.write(f.read())
+                     local_file.close()
+
+                     # Now that we have it, reconnect to the database of geocoded addresses.
+                     db = sqlite3.connect('addresses.db')
+                     cursor = db.cursor()
+
+                 except:
+                     pass
 
     # Create the output directory.
     try:
