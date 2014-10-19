@@ -30,7 +30,7 @@ api_error_count = 0
 source_api = 'VITA'
 
 def main():
-    
+   
    # Make sure that we can connect to the database.
     try:
         db = sqlite3.connect('addresses.db')
@@ -53,7 +53,7 @@ def main():
         req = Request(url)
     
         try:
-            f=urlopen(req)
+            f = urlopen(req)
             print "Downloading data from " + url
             local_file = open('current.zip', 'w')
             local_file.write(f.read())
@@ -63,7 +63,7 @@ def main():
         except HTTPError as e:
         
             cursor.execute("CREATE TABLE addresses(address_hash TEXT PRIMARY KEY NOT NULL, "
-            + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT)")
+                + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT)")
             db.commit()
     
     # Start reading from our input file.
@@ -192,11 +192,11 @@ def main():
             
             # Pause long enough that 1 second has elapsed for this loop, to avoid hammering the API.
             elapsed_time = time.time() - start_time
-            if (elapsed_time < 1):
+            if elapsed_time < 1:
                 time.sleep(1 - elapsed_time)
 
     # Close our database connection.
     db.close()
 
 if __name__ == "__main__":
-     main()
+    main()
