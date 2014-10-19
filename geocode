@@ -89,10 +89,20 @@ def main():
             # the API more than per second.
             start_time = time.time()
             
-            # Collapse our address columns and save that as a hash, to save in the database.
-            address_hash = hashlib.md5(record['street_1'] + "," + record['street_2'] + "," + \
-                record['city'] + "," + record['state'] + "," + record['zip']).hexdigest()
-    
+            # Collapse our address columns and save that as a hash, to save in the database. We
+            # convert to a byte str to avoid fatal Unicode-related erors for the odd problematic
+            # character.
+            try:
+                address_hash = hashlib.md5(str(record['street_1']).encode('utf-8') \
+                    + "," + str(record['street_2']).encode('utf-8') + "," \
+                    + str(record['city']).encode('utf-8') + "," \
+                    + str(record['state']).encode('utf-8') + "," \
+                    + str(record['zip']).encode('utf-8')).hexdigest()
+
+            # In the very rare instance of a character encoding error, just skip this record.
+            except UnicodeEncodeError as exception:
+                continue
+
             # If the hashed, combined string is already stored in the database, skip to the next
             # address.
             hash_param = (address_hash,)
