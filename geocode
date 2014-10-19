@@ -75,10 +75,14 @@ def main():
             
             # Skip records without addresses.
             if record['street_1'] == '' and record['street_2'] == '':
+                sys.stdout.write('A')
+                sys.stdout.flush()
                 continue
             
             # Skip records outside of Virginia, since that's all our geocoder can handle.
             if record['state'] != 'VA':
+                sys.stdout.write('V')
+                sys.stdout.flush()
                 continue
             
             # Note the time at which we started reading this record, to make sure that we don't hit
@@ -95,6 +99,8 @@ def main():
             cursor.execute("SELECT 1 FROM addresses WHERE address_hash = ?", hash_param)
             exists = cursor.fetchone()
             if exists is not None:
+                sys.stdout.write('C')
+                sys.stdout.flush()
                 continue
         
             # Remove quotation marks from street addresses.
