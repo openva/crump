@@ -29,7 +29,7 @@ output_dir = args.output
 atomize = args.atomize
 transform = args.transform
 download = args.download
-elasticsearch = args.elasticsearc
+elasticsearch = args.elasticsearch
 elasticsearch_map = args.map
 
 def main():
@@ -180,7 +180,7 @@ def main():
                         json_file.seek(-2, os.SEEK_END)
                         json_file.truncate()
                         try:
-                            elasticsearc
+                            elasticsearch
                         except NameError:
                             json_file.write(']')
 
@@ -209,7 +209,7 @@ def main():
                     # Start a new JSON file with an opening bracket, unless this is for
                     # Elasticsearch data.
                     try:
-                        elasticsearc
+                        elasticsearch
                     except NameError:
                         json_file.write('[')
 
@@ -223,7 +223,7 @@ def main():
                         name = field["alt_name"]
                     else:
                         name = field["name"]
-                    end = start + lengt
+                    end = start + length
                     if 'table_id' in field:
                         table_id = field["table_id"]
                     else:
