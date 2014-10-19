@@ -163,14 +163,22 @@ def main():
             # Grab the JSON response from the API.
             address_data = json.load(response)
             
-            # If the top result score is below 95, or the address is just a ZIP (indicating that
-            # we're getting the ZIP centroid), then record this as a failure and skip to the next
-            # line.
+            # If no address candidates were found, then record this as a failure and skip to the
+            # next line.
+            if 0 in address_data['candidates']:
+                pass
+            else:
+                continue
+            
+            # If the top result score is below 95, then record this as a failure and skip to the
+            # next line.
             if address_data['candidates'][0]['score'] < 95:
                 ### Realistically, we need to store in the database that no solid match could be
                 ### found. Otherwise, we're going to look up this address over and over again.
                 continue
             
+            # If the address is just a ZIP (indicating that we're getting the ZIP centroid), then
+            # record this as a failure and skip to the next line.
             if len(address_data['candidates'][0]['address']) < 6:
                 continue
             
