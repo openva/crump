@@ -72,23 +72,23 @@ def main():
         # Iterate through the lines in our input file.
         csvreader = csvkit.DictReader(csvfile)
         for record in csvreader:
-            
+
             # Skip records without addresses.
             if record['street_1'] == '' and record['street_2'] == '':
                 sys.stdout.write('A')
                 sys.stdout.flush()
                 continue
-            
+
             # Skip records outside of Virginia, since that's all our geocoder can handle.
             if record['state'] != 'VA':
                 sys.stdout.write('V')
                 sys.stdout.flush()
                 continue
-            
+
             # Note the time at which we started reading this record, to make sure that we don't hit
             # the API more than per second.
             start_time = time.time()
-            
+
             # Collapse our address columns and save that as a hash, to save in the database. We
             # convert to a byte str to avoid fatal Unicode-related erors for the odd problematic
             # character.
@@ -112,11 +112,11 @@ def main():
                 sys.stdout.write('C')
                 sys.stdout.flush()
                 continue
-        
+
             # Remove quotation marks from street addresses.
             record['street_1'] = record['street_1'].replace('"', '')
             record['street_2'] = record['street_2'].replace('"', '')
-        
+
             # If either address field starts with "C/O" or "ATTN:" drop it.
             if record['street_1'][:4].lower() == 'c/o ':
                 del record['street_1']
@@ -126,10 +126,10 @@ def main():
                 del record['street_2']
             elif record['street_2'][:6].lower() == 'attn: ':
                 del record['street_2']
-            
+
             # If either address 1 or address 2 contains "P[\.?][\s*])O[\.?] BOX" (or its variants),
             # and the other field isn't blank, then drop the PO BOX field.
-            
+
             # If either address 1 or address 2 is blank, drop it.
             if 'street_1' in 'record' and record['street_1'] == '':
                 del record['street_1']
@@ -178,7 +178,7 @@ def main():
             
             # Grab the JSON response from the API.
             address_data = json.load(response)
-            
+
             # If no address candidates were found, then record this as a failure and skip to the
             # next line.
             if 0 in address_data['candidates']:
