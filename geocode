@@ -166,9 +166,9 @@ def main():
 
             # If no address candidates were found, then record this as a failure and skip to the
             # next line.
-            if 0 in address_data['candidates']:
-                pass
-            else:
+            if len(address_data['candidates']) == 0:
+                sys.stdout.write('✗')
+                sys.stdout.flush()
                 continue
             
             # If the top result score is below 95, then record this as a failure and skip to the
