@@ -160,23 +160,8 @@ def main():
             request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
                 + url_parameters
             
-            # Fetch that URL.
-            req = urllib2.Request(request_url)
-            
-            try:
-                response = urllib2.urlopen(req)
-            
-            # If the URL request fails, increment our error count and skip to the next record.
-            except HTTPError as e:
-                sys.stdout.write('✗')
-                sys.stdout.flush()
-                api_error_count += 1
-                continue
-            
-            # Because the request succeeded, reset our our error count to zero.
-            api_error_count = 0
-            
-            # Grab the JSON response from the API.
+            # Fetch that URL and convert it into JSON.
+            response = urllib2.urlopen(request_url)
             address_data = json.load(response)
 
             # If no address candidates were found, then record this as a failure and skip to the
