@@ -17,9 +17,10 @@ import hashlib
 # Specify the file and the columnar start and end. Realistically, we should be pulling this data out
 # of the YAML table maps, since we specify which collections of fields are address fields. That
 # would obviate the need to specify filenames or column ranges.
-input_file = "output/2_corporate.csv" #9-13
+input_file = "output/2_corporate.csv"
 file_column_start = 9
 file_column_end = 13
+#input_file = "output/2_corporate.csv" #9-13
 #input_file = "output/3_lp.csv" #10-14
 #input_file = "output/9_llc.csv" #9-13
 
