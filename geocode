@@ -55,10 +55,6 @@ def main():
     
         try:
             f = urlopen(req)
-            print "Downloading data from " + url
-            local_file = open('current.zip', 'w')
-            local_file.write(f.read())
-            local_file.close()
 
         # If the addresses table cannot be retrieved from a remote cache, create it.
         except HTTPError as e:
@@ -66,6 +62,11 @@ def main():
             cursor.execute("CREATE TABLE addresses(address_hash TEXT PRIMARY KEY NOT NULL, "
                 + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT)")
             db.commit()
+        
+        print "Downloading data from " + url
+        local_file = open('addresses.db', 'w')
+        local_file.write(f.read())
+        local_file.close()
     
     # Start reading from our input file.
     with open(input_file, 'rb') as csvfile:
