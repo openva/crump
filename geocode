@@ -43,46 +43,46 @@ api_error_count = 0
 source_api = 'VITA'
 
 def main():
-   
+
    # Make sure that we can connect to the database.
     try:
         db = sqlite3.connect('addresses.db')
     except sqlite3.error, e:
         print "Count not connect to SQLite, with error %s:" % e.args[0]
         sys.exit(1)
-    
+
     # Create a SQLite cursor.
     cursor = db.cursor()
-    
+
     # See if the addresses table already exists.
     cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='addresses'")
     exists = cursor.fetchone()
-    
+
     # If the addresses table does not exist, try to retrieve it from a remote cache.
     if exists is None:
 
         from urllib2 import Request, urlopen, HTTPError
         url = 'https://s3.amazonaws.com/virginia-business/addresses.db'
         req = Request(url)
-    
+
         try:
             f = urlopen(req)
 
         # If the addresses table cannot be retrieved from a remote cache, create it.
         except HTTPError as e:
-        
+
             cursor.execute("CREATE TABLE addresses(address_hash TEXT PRIMARY KEY NOT NULL, "
                 + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT)")
             db.commit()
-        
+
         print "Downloading data from " + url
         local_file = open('addresses.db', 'w')
         local_file.write(f.read())
         local_file.close()
-    
+
     # Start reading from our input file.
     with open(input_file, 'rb') as csvfile:
-    
+
         # Iterate through the lines in our input file.
         csvreader = csvkit.DictReader(csvfile)
         for record in csvreader:
@@ -182,11 +182,11 @@ def main():
             url_parameters['maxLocations'] = '1'
             url_parameters['f'] = 'json'
             url_parameters = urllib.urlencode(url_parameters)
-            
+
             # Assemble the URL.
             request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
                 + url_parameters
-            
+
             # Fetch that URL.
             try:
                 response = urllib2.urlopen(request_url)
@@ -198,7 +198,7 @@ def main():
                     print "Too many API errors: halting."
                     sys.exit()
                 continue
-            
+
             # Load the returned JSON as an object.
             address_data = json.load(response)
 
@@ -214,31 +214,31 @@ def main():
                      sys.stdout.write('✗')
                      sys.stdout.flush()
                 continue
-            
+
             # If the top result score is below 95, then record this as a failure and skip to the
             # next line.
             if address_data['candidates'][0]['score'] < 95:
                 ### Realistically, we need to store in the database that no solid match could be
                 ### found. Otherwise, we're going to look up this address over and over again.
                 continue
-            
+
             # If the address is just a ZIP (indicating that we're getting the ZIP centroid), then
             # record this as a failure and skip to the next line.
             if len(address_data['candidates'][0]['address']) < 6:
                 continue
-            
+
             final = {}
             final['address'] = address_data['candidates'][0]['address']
             final['longitude'] = address_data['candidates'][0]['location']['x']
             final['latitude'] = address_data['candidates'][0]['location']['y']
             final['time'] = round(time.time())
-                
+
             # Insert the hashed address, cleaned address, latitude, longitude, timestamp, and source
             # into the database.
             cursor.execute("INSERT INTO addresses VALUES(?, ?, ?, ?, ?, ?)", \
                 (address_hash, final['address'], final['latitude'], final['longitude'], final['time'], source_api))
             db.commit()
-            
+
             # Report success to the terminal.
             if verbose:
                 print "Address geocoded"
