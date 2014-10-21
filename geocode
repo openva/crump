@@ -162,9 +162,23 @@ def main():
             request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
                 + url_parameters
             
-            # Fetch that URL and convert it into JSON.
-            response = urllib2.urlopen(request_url)
+            # Fetch that URL.
+            try:
+                response = urllib2.urlopen(request_url)
+            except urllib2.URLError as e:
+                sys.stdout.write('‽')
+                sys.stdout.flush()
+                api_error_count += 1
+                if api_error_count == 10:
+                    print "Too many API errors: halting."
+                    sys.exit()
+                continue
+            
+            # Load the returned JSON as an object.
             address_data = json.load(response)
+
+            # Since this worked, reset the API error count to zero.
+            api_error_count = 0
 
             # If no address candidates were found, then record this as a failure and skip to the
             # next line.
