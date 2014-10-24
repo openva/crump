@@ -258,6 +258,13 @@ def main():
                 # Break the line up into pieces.
                 line = {}
                 for field in current_map:
+                    # Skip any fields that lack start data -- those are columns that don't exist in
+                    # the master file, but that are added during the parsing process, and are
+                    # included in the map in order to have them indexed by Elasticsearch.
+                    if 'start' in field:
+                        pass
+                    else:
+                        continue
                     start = int(field["start"])
                     length = int(field["length"])                    
                     # Optionally substitute cleaner field names.
