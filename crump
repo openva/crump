@@ -165,6 +165,8 @@ def main():
                         search_index[file_number]['properties'][name]['type'] = 'string'
                     else:
                         search_index[file_number]['properties'][name]['type'] = map['search']['type']
+                        if map['search']['type'] == "geo_point":
+                            search_index[file_number]['properties'][name]['lat_lon'] = 'true'
 
                     try:
                         map['search']['match']
