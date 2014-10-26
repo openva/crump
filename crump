@@ -190,7 +190,10 @@ def main():
     current_map = None
     csv_writer = None
     json_file = None
+    
     with open(master_file) as f:
+        
+        # Iterate through our master file and start converting the data.
         for current_line in enumerate(f):
 
             # The file number is the first character on each line.
@@ -266,7 +269,8 @@ def main():
                     else:
                         continue
                     start = int(field["start"])
-                    length = int(field["length"])                    
+                    length = int(field["length"])    
+                                    
                     # Optionally substitute cleaner field names.
                     if transform and 'alt_name' in field.keys():
                         name = field["alt_name"]
@@ -307,6 +311,43 @@ def main():
                                     if conversion["table-code"] == line[name]:
                                         line[name] = conversion["table-desc"]
                                         break
+
+# To accomplish the below, we need to maintain dict order, because otherwise we won't be able to
+# get the address in the proper order. (e.g., "Charlottesville, 123 Main St., 22902, VA.") That's
+# non-trivial. Once we do that, we can find all groups with "address" in their name and "geo_point"
+# in search > type, generate a hash from them, combine those fields, hash them, retrieve the data,
+# and insert it.
+                # If we have geodata to be inserted.
+                if transform:
+                    if "group" in current_map:
+                    and we have a group with "address" in its name and it has a member of
+                    search > type with the value "geo_point":
+                    
+                        # Collapse our address columns and save that as a hash, to query the
+                        # database for. Convert to a byte str to avoid fatal Unicode-related erors
+                        # for the odd problematic character.
+                        try:
+                            address_hash = hashlib.md5(str(line['street_1']).encode('utf-8') \
+                                + "," + str(line['street_2']).encode('utf-8') + "," \
+                                + str(line['city']).encode('utf-8') + "," \
+                                + str(line['state']).encode('utf-8') + "," \
+                                + str(line['zip']).encode('utf-8')).hexdigest()
+
+                        # In the very rare instance of a character encoding error, don't bother
+                        # looking up the latitude and longitude of this record.
+                        except UnicodeEncodeError as exception:
+                            pass
+
+                        else:
+                            # If the hashed, combined string is already stored in the database, then
+                            # we have coordinates for it.
+                            hash_param = (address_hash,)
+                            cursor.execute("SELECT latitude, longitude FROM addresses WHERE address_hash = ?", hash_param)
+                            coordinates = cursor.fetchone()
+                            if coordinates is not None:
+                                # FIX THE BELOW -- we should not be naming "coordinates" manually,
+                                # but instead using the identified field name.
+                                line['coordinates'] = coordinates['latitude'] + ',' + coordinates['longitude']
 
                 try:
                     csv_writer.writerow(line)
