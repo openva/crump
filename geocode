@@ -39,9 +39,6 @@ file_column_end = range[1]
 # We keep track of how many consecutive errors the API throws, to stop if there are too many.
 api_error_count = 0
 
-# Note the name of the API that we're using to geocode this data. (We store it in the database.)
-source_api = 'VITA'
-
 def main():
 
    # Make sure that we can connect to the database.
@@ -265,10 +262,14 @@ def main():
                 final['latitude'] = address_data[0]['coordinates']['y']
                 final['time'] = round(time.time())
 
+                # Note the name of the API that we're using to geocode this data.
+                final['source_api'] = 'VITA'
+
             # Insert the hashed address, cleaned address, latitude, longitude, timestamp, and source
             # into the database.
             cursor.execute("INSERT INTO addresses VALUES(?, ?, ?, ?, ?, ?)", \
-                (address_hash, final['address'], final['latitude'], final['longitude'], final['time'], source_api))
+                (address_hash, final['address'], final['latitude'], final['longitude'], \
+                final['time'], final['source_api']))
             db.commit()
 
             # Report success to the terminal.
