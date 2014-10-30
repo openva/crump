@@ -143,7 +143,17 @@ def main():
                 del record['street_2']
 
             # If either address 1 or address 2 contains "P[\.?][\s*])O[\.?] BOX" (or its variants),
-            # and the other field isn't blank, then drop the PO BOX field.
+            # then drop it.
+            if 'street_1' in record:
+                if record['street_1'][:6].lower() == 'po box':
+                    del record['street_1']
+                elif record['street_1'][:8].lower() == 'p.o. box':
+                    del record['street_1']
+            if 'street_2' in record:
+                if record['street_2'][:6].lower() == 'po box':
+                    del record['street_2']
+                elif record['street_2'][:8].lower() == 'p.o. box':
+                    del record['street_2']
 
             # If either address 1 or address 2 is blank, drop it.
             if 'street_1' in 'record' and record['street_1'] == '':
