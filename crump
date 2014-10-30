@@ -11,6 +11,7 @@ import json
 import argparse
 import zipfile
 import sys
+import hashlib
 import sqlite3
 
 parser = argparse.ArgumentParser(
@@ -192,6 +193,11 @@ def main():
     json_file = None
     
     with open(master_file) as f:
+
+        # If we're transforming data, and thus adding geodata, connect to our address database.
+        if transform:
+            db = sqlite3.connect('addresses.db')
+            cursor = db.cursor()
         
         # Iterate through our master file and start converting the data.
         for current_line in enumerate(f):
@@ -312,31 +318,28 @@ def main():
                                         line[name] = conversion["table-desc"]
                                         break
 
-# To accomplish the below, we need to maintain dict order, because otherwise we won't be able to
-# get the address in the proper order. (e.g., "Charlottesville, 123 Main St., 22902, VA.") That's
-# non-trivial. Once we do that, we can find all groups with "address" in their name and "geo_point"
-# in search > type, generate a hash from them, combine those fields, hash them, retrieve the data,
-# and insert it.
                 # If we have geodata to be inserted.
                 if transform:
-                    if "group" in current_map:
-                    and we have a group with "address" in its name and it has a member of
-                    search > type with the value "geo_point":
+                    #if "group" in current_map:
+                    #and we have a group with "address" in its name and it has a member of
+                    #search > type with the value "geo_point":
+                    if file_number == '2' or file_number == '3' or file_number == '9':
                     
                         # Collapse our address columns and save that as a hash, to query the
                         # database for. Convert to a byte str to avoid fatal Unicode-related erors
                         # for the odd problematic character.
                         try:
-                            address_hash = hashlib.md5(str(line['street_1']).encode('utf-8') \
-                                + "," + str(line['street_2']).encode('utf-8') + "," \
-                                + str(line['city']).encode('utf-8') + "," \
-                                + str(line['state']).encode('utf-8') + "," \
-                                + str(line['zip']).encode('utf-8')).hexdigest()
+                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
+                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
 
-                        # In the very rare instance of a character encoding error, don't bother
-                        # looking up the latitude and longitude of this record.
+                        # In the very rare instance of a character encoding error, fix the error
+                        # and try again.
                         except UnicodeEncodeError as exception:
-                            pass
+                            for key in line:
+                                if line[key] != None:
+                                    line[key] = replace_non_ascii(line[key])
+                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
+                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
 
                         else:
                             # If the hashed, combined string is already stored in the database, then
@@ -347,7 +350,7 @@ def main():
                             if coordinates is not None:
                                 # FIX THE BELOW -- we should not be naming "coordinates" manually,
                                 # but instead using the identified field name.
-                                line['coordinates'] = coordinates['latitude'] + ',' + coordinates['longitude']
+                                line['coordinates'] = str(coordinates[0]) + ',' + str(coordinates[1])
 
                 try:
                     csv_writer.writerow(line)
