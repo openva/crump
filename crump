@@ -379,6 +379,16 @@ def main():
                     json.dump(index, json_file)
                     json_file.write(',\n')
 
+                # Make a few modifications to the data before writing it as JSON. (CSV only has
+                # columns, while of course JSON can have nested data, so we take this opportunity
+                # to nest some data.)
+                if transform:
+                    if 'coordinates' in line:
+                        line['location'] = dict()
+                        line['location']['coordinates'] = line['coordinates']
+                        line['location']['type'] = 'point'
+                        del line['coordinates']
+
                 # Save the JSON data.
                 json.dump(line, json_file)
 
