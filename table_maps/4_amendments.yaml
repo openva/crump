@@ -83,7 +83,7 @@
   start:       30
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -97,7 +97,7 @@
   start:       49
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -111,7 +111,7 @@
   start:       68
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -125,7 +125,7 @@
   start:       87
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -139,7 +139,7 @@
   start:       106
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -153,7 +153,7 @@
   start:       125
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -167,7 +167,7 @@
   start:       144
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -181,7 +181,7 @@
   start:       163
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        hist-old-stock-class
   alt_name:    stock_class
   description: Stock Class

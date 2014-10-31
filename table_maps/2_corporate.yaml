@@ -186,7 +186,7 @@
   start:       508
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-merger-ind
   alt_name:    merged
   description: Merger Indicator
@@ -213,7 +213,7 @@
   start:       529
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -227,7 +227,7 @@
   start:       548
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -241,7 +241,7 @@
   start:       567
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -255,7 +255,7 @@
   start:       586
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -269,7 +269,7 @@
   start:       605
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -283,7 +283,7 @@
   start:       624
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -297,7 +297,7 @@
   start:       643
   length:      11
   search:
-    type:      int
+    type:      integer
 - name:        corp-stock-class
   alt_name:    stock_class
   description: Stock Class
@@ -311,4 +311,4 @@
   start:       662
   length:      11
   search:
-    type:      int
+    type:      integer
