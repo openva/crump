@@ -1,3 +1,9 @@
+- name:        corp-foreign
+  alt_name:    foreign
+  description: Whether the corporation was formed outside of VA
+  type:        A
+  start:       2
+  length:      1
 - name:        corp-id
   alt_name:    id
   description: Unique number assigned to Corp
