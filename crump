@@ -11,6 +11,7 @@ import json
 import argparse
 import zipfile
 import sys
+import hashlib
 import sqlite3
 
 parser = argparse.ArgumentParser(
@@ -165,7 +166,7 @@ def main():
                         search_index[file_number]['properties'][name]['type'] = 'string'
                     else:
                         search_index[file_number]['properties'][name]['type'] = map['search']['type']
-                        if map['search']['type'] == "geo_point":
+                        if map['search']['type'] == "geo_shape":
                             search_index[file_number]['properties'][name]['lat_lon'] = 'true'
 
                     try:
@@ -190,7 +191,15 @@ def main():
     current_map = None
     csv_writer = None
     json_file = None
+    
     with open(master_file) as f:
+
+        # If we're transforming data, and thus adding geodata, connect to our address database.
+        if transform:
+            db = sqlite3.connect('addresses.db')
+            cursor = db.cursor()
+        
+        # Iterate through our master file and start converting the data.
         for current_line in enumerate(f):
 
             # The file number is the first character on each line.
@@ -266,7 +275,8 @@ def main():
                     else:
                         continue
                     start = int(field["start"])
-                    length = int(field["length"])                    
+                    length = int(field["length"])    
+                                    
                     # Optionally substitute cleaner field names.
                     if transform and 'alt_name' in field.keys():
                         name = field["alt_name"]
@@ -308,6 +318,40 @@ def main():
                                         line[name] = conversion["table-desc"]
                                         break
 
+                # If we have geodata to be inserted.
+                if transform:
+                    #if "group" in current_map:
+                    #and we have a group with "address" in its name and it has a member of
+                    #search > type with the value "geo_point":
+                    if file_number == '2' or file_number == '3' or file_number == '9':
+                    
+                        # Collapse our address columns and save that as a hash, to query the
+                        # database for. Convert to a byte str to avoid fatal Unicode-related erors
+                        # for the odd problematic character.
+                        try:
+                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
+                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
+
+                        # In the very rare instance of a character encoding error, fix the error
+                        # and try again.
+                        except UnicodeEncodeError as exception:
+                            for key in line:
+                                if line[key] != None:
+                                    line[key] = replace_non_ascii(line[key])
+                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
+                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
+
+                        else:
+                            # If the hashed, combined string is already stored in the database, then
+                            # we have coordinates for it.
+                            hash_param = (address_hash,)
+                            cursor.execute("SELECT latitude, longitude FROM addresses WHERE address_hash = ?", hash_param)
+                            coordinates = cursor.fetchone()
+                            if coordinates is not None:
+                                # FIX THE BELOW -- we should not be naming "coordinates" manually,
+                                # but instead using the identified field name.
+                                line['coordinates'] = str(coordinates[0]) + ',' + str(coordinates[1])
+
                 try:
                     csv_writer.writerow(line)
                 except UnicodeDecodeError as exception:
@@ -334,6 +378,16 @@ def main():
                     index['index']['_type'] = file_number
                     json.dump(index, json_file)
                     json_file.write(',\n')
+
+                # Make a few modifications to the data before writing it as JSON. (CSV only has
+                # columns, while of course JSON can have nested data, so we take this opportunity
+                # to nest some data.)
+                if transform:
+                    if 'coordinates' in line:
+                        line['location'] = dict()
+                        line['location']['coordinates'] = line['coordinates']
+                        line['location']['type'] = 'point'
+                        del line['coordinates']
 
                 # Save the JSON data.
                 json.dump(line, json_file)

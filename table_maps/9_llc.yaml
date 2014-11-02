@@ -36,7 +36,7 @@
   search: 
     type:      date
 - name:        corp-inc-date
-  alt_name:    date
+  alt_name:    incorporation_date
   description: Date of Formation
   type:        N
   start:       127

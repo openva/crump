@@ -39,9 +39,6 @@ file_column_end = range[1]
 # We keep track of how many consecutive errors the API throws, to stop if there are too many.
 api_error_count = 0
 
-# Note the name of the API that we're using to geocode this data. (We store it in the database.)
-source_api = 'VITA'
-
 def main():
 
    # Make sure that we can connect to the database.
@@ -100,15 +97,6 @@ def main():
                     sys.stdout.flush()
                 continue
 
-            # Skip records outside of Virginia, since that's all our geocoder can handle.
-            if record['state'] != 'VA':
-                if verbose:
-                    print "Skipping address outside of Virginia"
-                else:
-                    sys.stdout.write('V')
-                    sys.stdout.flush()
-                continue
-
             # Note the time at which we started reading this record, to make sure that we don't hit
             # the API more than per second.
             start_time = time.time()
@@ -155,7 +143,17 @@ def main():
                 del record['street_2']
 
             # If either address 1 or address 2 contains "P[\.?][\s*])O[\.?] BOX" (or its variants),
-            # and the other field isn't blank, then drop the PO BOX field.
+            # then drop it.
+            if 'street_1' in record:
+                if record['street_1'][:6].lower() == 'po box':
+                    del record['street_1']
+                elif record['street_1'][:8].lower() == 'p.o. box':
+                    del record['street_1']
+            if 'street_2' in record:
+                if record['street_2'][:6].lower() == 'po box':
+                    del record['street_2']
+                elif record['street_2'][:8].lower() == 'p.o. box':
+                    del record['street_2']
 
             # If either address 1 or address 2 is blank, drop it.
             if 'street_1' in 'record' and record['street_1'] == '':
@@ -184,8 +182,12 @@ def main():
             url_parameters = urllib.urlencode(url_parameters)
 
             # Assemble the URL.
-            request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
-                + url_parameters
+            if record['state'] == 'VA':
+                request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
+                    + url_parameters
+            else:
+                request_url = 'http://geocoding.geo.census.gov/geocoder/locations/address?benchmark=Public_AR_Current&format=json&' \
+                    + url_parameters
 
             # Fetch that URL.
             try:
@@ -205,38 +207,79 @@ def main():
             # Since this worked, reset the API error count to zero.
             api_error_count = 0
 
-            # If no address candidates were found, then record this as a failure and skip to the
-            # next line.
-            if len(address_data['candidates']) == 0:
-                if verbose:
-                    print "API returned no address candidates"
-                else:
-                     sys.stdout.write('✗')
-                     sys.stdout.flush()
-                continue
+            # If this is a Virginia record.
+            if record['state'] == 'VA':
+                # If no address candidates were found, then record this as a failure and skip to the
+                # next line.
+                if len(address_data['candidates']) == 0:
+                    if verbose:
+                        print "API returned no address candidates"
+                    else:
+                        sys.stdout.write('✗')
+                        sys.stdout.flush()
+                    continue
+    
+                # If the top result score is below 80, then record this as a failure and skip to the
+                # next line.
+                if address_data['candidates'][0]['score'] < 80:
+                    ### Realistically, we need to store in the database that no solid match could be
+                    ### found. Otherwise, we're going to look up this address over and over again.
+                    if verbose:
+                        print "API has insufficient confidence in its result"
+                    else:
+                        sys.stdout.write('✗')
+                        sys.stdout.flush()
+                    continue
+    
+                # If the address is just a ZIP (indicating that we're getting the ZIP centroid), then
+                # record this as a failure and skip to the next line.
+                if len(address_data['candidates'][0]['address']) < 6:
+                    if verbose:
+                        print "API only returned a ZIP centroid"
+                    else:
+                        sys.stdout.write('✗')
+                        sys.stdout.flush()
+                    continue
 
-            # If the top result score is below 95, then record this as a failure and skip to the
-            # next line.
-            if address_data['candidates'][0]['score'] < 95:
-                ### Realistically, we need to store in the database that no solid match could be
-                ### found. Otherwise, we're going to look up this address over and over again.
-                continue
+                final = {}
+                final['address'] = address_data['candidates'][0]['address']
+                final['longitude'] = address_data['candidates'][0]['location']['x']
+                final['latitude'] = address_data['candidates'][0]['location']['y']
+                final['time'] = round(time.time())
 
-            # If the address is just a ZIP (indicating that we're getting the ZIP centroid), then
-            # record this as a failure and skip to the next line.
-            if len(address_data['candidates'][0]['address']) < 6:
-                continue
+                # Note the name of the API that we're using to geocode this data.
+                final['source_api'] = 'VITA'
 
-            final = {}
-            final['address'] = address_data['candidates'][0]['address']
-            final['longitude'] = address_data['candidates'][0]['location']['x']
-            final['latitude'] = address_data['candidates'][0]['location']['y']
-            final['time'] = round(time.time())
+            # If this is an extra-Virginia record.
+            if record['state'] != 'VA':
+                
+                # Bring the useful contents up a level.
+                address_data = address_data['result']['addressMatches']
+
+                # If no address candidates were found, then record this as a failure and skip to the
+                # next line.
+                if len(address_data) == 0:
+                    if verbose:
+                        print "Census API returned no address candidates"
+                    else:
+                        sys.stdout.write('✗')
+                        sys.stdout.flush()
+                    continue
+
+                final = {}
+                final['address'] = address_data[0]['matchedAddress']
+                final['longitude'] = address_data[0]['coordinates']['x']
+                final['latitude'] = address_data[0]['coordinates']['y']
+                final['time'] = round(time.time())
+
+                # Note the name of the API that we're using to geocode this data.
+                final['source_api'] = 'VITA'
 
             # Insert the hashed address, cleaned address, latitude, longitude, timestamp, and source
             # into the database.
             cursor.execute("INSERT INTO addresses VALUES(?, ?, ?, ?, ?, ?)", \
-                (address_hash, final['address'], final['latitude'], final['longitude'], final['time'], source_api))
+                (address_hash, final['address'], final['latitude'], final['longitude'], \
+                final['time'], final['source_api']))
             db.commit()
 
             # Report success to the terminal.
@@ -247,8 +290,9 @@ def main():
                 sys.stdout.flush()
 
             # Pause long enough that 1 second has elapsed for this loop, to avoid hammering the API.
-            if time.time() - start_time < 1:
-                time.sleep(1 - (time.time() - start_time))
+            if record['state'] != 'VA':
+                if time.time() - start_time < 1:
+                    time.sleep(1 - (time.time() - start_time))
 
     # Close our database connection.
     db.close()
