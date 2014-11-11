@@ -165,9 +165,15 @@ def main():
                     except KeyError:
                         search_index[file_number]['properties'][name]['type'] = 'string'
                     else:
-                        search_index[file_number]['properties'][name]['type'] = map['search']['type']
-                        if map['search']['type'] == "geo_shape":
-                            search_index[file_number]['properties'][name]['lat_lon'] = 'true'
+                        if map['search']['type'] == "geo_point":
+                            search_index[file_number]['properties']['location'] = {}
+                            search_index[file_number]['properties']['location']['type'] = 'object'
+                            search_index[file_number]['properties']['location']['properties'] = {}
+                            search_index[file_number]['properties']['location']['properties']['coordinates'] = {}
+                            search_index[file_number]['properties']['location']['properties']['coordinates']['type'] = 'geo_point'
+                            search_index[file_number]['properties']['location']['properties']['coordinates']['lat_lon'] = 'true'
+                        else:
+                            search_index[file_number]['properties'][name]['type'] = map['search']['type']
 
                     try:
                         map['search']['match']
