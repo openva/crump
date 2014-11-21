@@ -14,6 +14,7 @@ import urllib2
 import json
 import hashlib
 import argparse
+import time
 
 parser = argparse.ArgumentParser(
     description="A geocoder for for Virginia State Corporation Commission records",
@@ -21,10 +22,12 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-i', '--input', help="the file to parse", metavar="addresses.csv", required=True)
 parser.add_argument('-c', '--columns', help="the range of columns containing addresses", metavar="9-14", required=True)
 parser.add_argument('-v', '--verbose', help="verbose mode", action='store_true')
+parser.add_argument('-s', '--since', help="only geocode records updated since this date (inclusive)", metavar="YYYY-MM-DD")
 args = parser.parse_args()
 input_file = args.input
 verbose = args.verbose
 columns = args.columns
+date_since = time.strptime(args.since, "%Y-%m-%d")
 
 # Specify the file and the columnar start and end. Realistically, we should be pulling this data out
 # of the YAML table maps, since we specify which collections of fields are address fields. That
@@ -96,6 +99,25 @@ def main():
                     sys.stdout.write('A')
                     sys.stdout.flush()
                 continue
+
+            # Optionally skip any old records that don't need to be re-geocoded.
+            if date_since:
+                if record['address_date'] != '':
+                    if time.strptime(record['address_date'], "%Y-%m-%d") < date_since:
+                        if verbose:
+                            print "Skipping old record"
+                        else:
+                            sys.stdout.write('S')
+                            sys.stdout.flush()
+                        continue
+                if time.strptime(record['status_date'], "%Y-%m-%d") < date_since:
+                    if verbose:
+                        print "Skipping old record"
+                    else:
+                        sys.stdout.write('S')
+                        sys.stdout.flush()
+                    continue
+                
 
             # Note the time at which we started reading this record, to make sure that we don't hit
             # the API more than per second.
@@ -218,7 +240,7 @@ def main():
                         sys.stdout.write('✗')
                         sys.stdout.flush()
                     continue
-    
+
                 # If the top result score is below 80, then record this as a failure and skip to the
                 # next line.
                 if address_data['candidates'][0]['score'] < 80:
@@ -230,7 +252,7 @@ def main():
                         sys.stdout.write('✗')
                         sys.stdout.flush()
                     continue
-    
+
                 # If the address is just a ZIP (indicating that we're getting the ZIP centroid), then
                 # record this as a failure and skip to the next line.
                 if len(address_data['candidates'][0]['address']) < 6:
@@ -252,7 +274,7 @@ def main():
 
             # If this is an extra-Virginia record.
             if record['state'] != 'VA':
-                
+
                 # Bring the useful contents up a level.
                 address_data = address_data['result']['addressMatches']
 
