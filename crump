@@ -144,6 +144,8 @@ def main():
             search_index[file_number]['properties'] = dict()
 
             current_map = field_maps[file_number]['map']
+            
+            # Iterate through every field in this mapping file.
             for map in current_map:
 
                 try:
@@ -154,6 +156,7 @@ def main():
                 name = map['alt_name']
                 search_index[file_number]['properties'][name] = dict()
 
+                # If this field contains Elasticsearch instructions, we want to handle those.
                 try:
                     map['search']
                 except KeyError:
