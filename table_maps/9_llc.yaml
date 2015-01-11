@@ -102,7 +102,7 @@
   description: Latitude and longitude of Principal address
   group:       address
   search:
-    type:      geo_point
+    type:      geo_shape
 - name:        corp-po-eff-date
   alt_name:    address_date
   description: Effective date of Principal address

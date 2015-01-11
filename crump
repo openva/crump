@@ -170,11 +170,7 @@ def main():
                     else:
                         if map['search']['type'] == "geo_point":
                             search_index[file_number]['properties']['location'] = {}
-                            search_index[file_number]['properties']['location']['type'] = 'object'
-                            search_index[file_number]['properties']['location']['properties'] = {}
-                            search_index[file_number]['properties']['location']['properties']['coordinates'] = {}
-                            search_index[file_number]['properties']['location']['properties']['coordinates']['type'] = 'geo_point'
-                            search_index[file_number]['properties']['location']['properties']['coordinates']['lat_lon'] = 'true'
+                            search_index[file_number]['properties']['location']['type'] = 'geo_shape'
                             del search_index[file_number]['properties'][name]
                         else:
                             search_index[file_number]['properties'][name]['type'] = map['search']['type']
