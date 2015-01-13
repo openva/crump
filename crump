@@ -356,7 +356,7 @@ def main():
                             if coordinates is not None:
                                 # FIX THE BELOW -- we should not be naming "coordinates" manually,
                                 # but instead using the identified field name.
-                                line['coordinates'] = [coordinates[1], coordinates[0]]
+                                line['coordinates'] = [str(coordinates[1]), str(coordinates[0])]
 
                 try:
                     csv_writer.writerow(line)
@@ -412,7 +412,6 @@ def main():
 # Replace invalid non-ASCII characters with the correct character.
 def replace_non_ascii(s):
     o = ''
-    s = str(s)
     for i in s:
         if ord(i) > 128:
             key = hex(ord(i))
