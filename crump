@@ -168,7 +168,7 @@ def main():
                     except KeyError:
                         search_index[file_number]['properties'][name]['type'] = 'string'
                     else:
-                        if map['search']['type'] == "geo_point":
+                        if map['search']['type'] == "geo_shape":
                             search_index[file_number]['properties']['location'] = {}
                             search_index[file_number]['properties']['location']['type'] = 'geo_shape'
                             del search_index[file_number]['properties'][name]
@@ -356,7 +356,7 @@ def main():
                             if coordinates is not None:
                                 # FIX THE BELOW -- we should not be naming "coordinates" manually,
                                 # but instead using the identified field name.
-                                line['coordinates'] = str(coordinates[0]) + ',' + str(coordinates[1])
+                                line['coordinates'] = [coordinates[1], coordinates[0]]
 
                 try:
                     csv_writer.writerow(line)
