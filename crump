@@ -412,6 +412,7 @@ def main():
 # Replace invalid non-ASCII characters with the correct character.
 def replace_non_ascii(s):
     o = ''
+    s = str(s)
     for i in s:
         if ord(i) > 128:
             key = hex(ord(i))
