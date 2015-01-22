@@ -305,6 +305,8 @@ def main():
                             line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                             if line[name] == "0000-00-00":
                                 line[name] = None
+                            elif line[name] == "9999-99-99":
+                                line[name] = None
 
                         # Format ZIP codes properly.
                         if "zip" in name:
