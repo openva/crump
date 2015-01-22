@@ -411,18 +411,21 @@ def main():
 
 # Replace invalid non-ASCII characters with the correct character.
 def replace_non_ascii(s):
-    o = ''
-    for i in s:
-        if ord(i) > 128:
-            key = hex(ord(i))
-            try:
-                replacement = character_map[key[2:]]
-            except KeyError:
-                o += ' '
+    if isinstance(s, str):
+        o = ''
+        for i in s:
+            if ord(i) > 128:
+                key = hex(ord(i))
+                try:
+                    replacement = character_map[key[2:]]
+                except KeyError:
+                    o += ' '
+                else:
+                    o += replacement
             else:
-                o += replacement
-        else:
-            o += i
+                o += i
+    else:
+        o = s
     return o
 
 # Split a file into smaller chunks.
