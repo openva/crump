@@ -236,9 +236,7 @@ def main():
                     if last_file != "":
                         json_file.seek(-2, os.SEEK_END)
                         json_file.truncate()
-                        try:
-                            elasticsearch
-                        except NameError:
+                        if elasticsearch == False:
                             json_file.write(']')
 
                     # This is a new file: retrieve the correct field map and set up the file.
@@ -265,9 +263,7 @@ def main():
 
                     # Start a new JSON file with an opening bracket, unless this is for
                     # Elasticsearch data.
-                    try:
-                        elasticsearch
-                    except NameError:
+                    if elasticsearch == False:
                         json_file.write('[')
 
                 # Break the line up into pieces.
