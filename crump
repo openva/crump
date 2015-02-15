@@ -305,7 +305,7 @@ def main():
                                 line[name] = None
 
                         # Format ZIP codes properly.
-                        if "zip" in name:
+                        elif "zip" in name:
                             if len(line[name]) == 9:
                                 if line[name] == '000000000':
                                     line[name] = ''
