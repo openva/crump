@@ -27,7 +27,9 @@ args = parser.parse_args()
 input_file = args.input
 verbose = args.verbose
 columns = args.columns
-date_since = time.strptime(args.since, "%Y-%m-%d")
+date_since = args.since
+if date_since:
+    date_since = time.strptime(date_since, "%Y-%m-%d")
 
 # Specify the file and the columnar start and end. Realistically, we should be pulling this data out
 # of the YAML table maps, since we specify which collections of fields are address fields. That
