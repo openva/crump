@@ -41,10 +41,10 @@ file_column_end = range[1]
 #input_file = "output/3_lp.csv" #10-14
 #input_file = "output/9_llc.csv" #9-13
 
-# We keep track of how many consecutive errors the API throws, to stop if there are too many.
-api_error_count = 0
-
 def main():
+
+    # We keep track of how many consecutive errors the API throws, to stop if there are too many.
+    api_error_count = 0
 
    # Make sure that we can connect to the database.
     try:
