@@ -58,6 +58,7 @@
   type:        A
   start:       137
   length:      2
+  table_id:    03
 - name:        corp-street1
   alt_name:    street_1
   description: Principal Street
