@@ -315,6 +315,22 @@ def main():
                                 else:
                                     line[name] = line[name][:-4] + '-' + line[name][-4:]
 
+                        # Indicate whether a corporation is foreign or domestic, using True/False
+                        # values instead of the F/0 values the SCC uses in 2_corporate.
+                        elif name == 'foreign':
+                            if line[name] == '0':
+                                line[name] = False
+                            else:
+                                line[name] = True
+
+                        # Indicate whether a corporation is foreign or domestic, using True/False
+                        # values instead of the M/L values the SCC uses in 3_lp.
+                        elif name == 'domestic':
+                            if line[name] == 'M':
+                                line[name] = False
+                            else:
+                                line[name] = True
+
                         # Remove extraneous internal whitespace.
                         if type(line[name]) is str:
                             line[name] = re.sub("\s{2,}", " ", line[name])
