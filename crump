@@ -326,6 +326,11 @@ def main():
                         elif name == 'total_shares':
                             line[name] = int(line[name]) + 0
 
+                            # Share counts of 99,999,999,999 seem to follow the practice of 9s
+                            # indicating a null value.
+                            if line[name] == 99999999999:
+                                line[name] = None
+
                         # Remove extraneous internal whitespace.
                         if type(line[name]) is str:
                             line[name] = re.sub("\s{2,}", " ", line[name])
