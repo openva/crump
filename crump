@@ -322,6 +322,10 @@ def main():
                             else:
                                 line[name] = True
 
+                        # The total share count sometimes has a leading zero. Strip it off.
+                        elif name == 'total_shares':
+                            line[name] = int(line[name]) + 0
+
                         # Remove extraneous internal whitespace.
                         if type(line[name]) is str:
                             line[name] = re.sub("\s{2,}", " ", line[name])
