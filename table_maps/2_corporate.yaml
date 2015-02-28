@@ -212,6 +212,7 @@
   type:        A
   start:       521
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares
@@ -226,6 +227,7 @@
   type:        A
   start:       540
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares
@@ -240,6 +242,7 @@
   type:        A
   start:       559
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares
@@ -254,6 +257,7 @@
   type:        A
   start:       578
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares
@@ -268,6 +272,7 @@
   type:        A
   start:       597
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares
@@ -282,6 +287,7 @@
   type:        A
   start:       616
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares
@@ -296,6 +302,7 @@
   type:        A
   start:       635
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares
@@ -310,6 +317,7 @@
   type:        A
   start:       654
   length:      8
+  table_id:    12
 - name:        corp-stock-share-auth
   alt_name:    number_shares
   description: Number of Shares

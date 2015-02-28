@@ -18,42 +18,49 @@
   type:        A
   start:       10
   length:      1
+  table_id:    19
 - name:        hist-amend-type
   alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       11
   length:      1
+  table_id:    19
 - name:        hist-amend-type
   alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       12
   length:      1
+  table_id:    19
 - name:        hist-amend-type
   alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       13
   length:      1
+  table_id:    19
 - name:        hist-amend-type
   alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       14
   length:      1
+  table_id:    19
 - name:        hist-amend-type
   alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       15
   length:      1
+  table_id:    19
 - name:        hist-amend-type
   alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
   type:        A
   start:       16
   length:      1
+  table_id:    19
 - name:        hist-amend-type
   alt_name:    amendment_type
   description: Corp/LP/LLC Amend Types
@@ -62,6 +69,7 @@
   length:      1
   type:        A
   start:       18
+  table_id:    19
 - name:        hist-amend-date
   alt_name:    date
   description: Effective date of Amendment
