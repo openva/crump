@@ -171,7 +171,7 @@
   type:        A
   start:       503
   length:      1
-  table_id:    01
+  table_id:    40
 - name:        corp-ra-loc
   alt_name:    agent_court_locality
   description: RA Court Locality
