@@ -192,7 +192,7 @@
   start:       508
   length:      11
   search:
-    type:      integer
+    type:      long
 - name:        corp-merger-ind
   alt_name:    merged
   description: Merger Indicator
