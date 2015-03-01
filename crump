@@ -14,6 +14,7 @@ import sys
 import hashlib
 import sqlite3
 import re
+import datetime
 
 parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
@@ -288,13 +289,22 @@ def main():
                     # If we have elected, via command-line option, to transform field contents.
                     if transform:
 
-                        # Format dates properly.
+                        
                         if "date" in name:
+
+                        	# Format dates properly.
                             line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                             if line[name] == "0000-00-00":
                                 line[name] = None
                             elif line[name] == "9999-99-99":
                                 line[name] = None
+                            else:
+
+								# Reject invalid dates
+								try:
+									datetime.datetime.strptime(line[name], '%Y-%m-%d')
+								except ValueError:
+									line[name] = None
 
                         # Format ZIP codes properly.
                         elif "zip" in name:
