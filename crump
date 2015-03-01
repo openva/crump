@@ -289,10 +289,10 @@ def main():
                     # If we have elected, via command-line option, to transform field contents.
                     if transform:
 
-                        
+                        # Clean up dates.
                         if "date" in name:
 
-                        	# Format dates properly.
+                            # Format dates properly.
                             line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                             if line[name] == "0000-00-00":
                                 line[name] = None
@@ -300,11 +300,11 @@ def main():
                                 line[name] = None
                             else:
 
-								# Reject invalid dates
-								try:
-									datetime.datetime.strptime(line[name], '%Y-%m-%d')
-								except ValueError:
-									line[name] = None
+                                # Reject invalid dates
+                                try:
+                                    datetime.datetime.strptime(line[name], '%Y-%m-%d')
+                                except ValueError:
+                                    line[name] = None
 
                         # Format ZIP codes properly.
                         elif "zip" in name:
