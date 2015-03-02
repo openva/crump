@@ -18,6 +18,7 @@ import datetime
 import warnings
 import re
 import calendar
+#from functools import lru_cache
 
 parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
@@ -525,6 +526,7 @@ def checksum(corp_id):
 # Fix invalid dates.
 gregorian= calendar.Calendar()
 
+#@lru_cache(1200)
 def last_day( year, month ):
     return max(gregorian.itermonthdays(year, month))
 
