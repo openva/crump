@@ -37,6 +37,10 @@ download = args.download
 elasticsearch = args.elasticsearch
 elasticsearch_map = args.map
 
+# The JSON handler in Python 2.7 has trouble with some dates. Work around this.
+def date_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
 def main():
 
     # Make sure the master file exists
@@ -414,7 +418,7 @@ def main():
                         del line['coordinates']
 
                 # Save the JSON data.
-                json.dump(line, json_file)
+                json.dump(line, json_file, default=date_handler)
 
                 # Add a separating comma between elements.
                 if elasticsearch:
