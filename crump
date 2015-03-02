@@ -15,6 +15,9 @@ import hashlib
 import sqlite3
 import re
 import datetime
+import warnings
+import re
+import calendar
 
 parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
@@ -299,12 +302,7 @@ def main():
                             elif line[name] == "9999-99-99":
                                 line[name] = None
                             else:
-
-                                # Reject invalid dates
-                                try:
-                                    datetime.datetime.strptime(line[name], '%Y-%m-%d')
-                                except ValueError:
-                                    line[name] = None
+                                line[name] = convert_date(line[name])
 
                         # Format ZIP codes properly.
                         elif "zip" in name:
@@ -523,6 +521,53 @@ def checksum(corp_id):
     checksum = checksum[1:2]
 
     return checksum
+
+# Fix invalid dates.
+gregorian= calendar.Calendar()
+
+def last_day( year, month ):
+    return max(gregorian.itermonthdays(year, month))
+
+date_pat= re.compile(r"(?P<y>\d+)-(?P<m>\d+)-(?P<d>\d+)")
+def convert_date(text):
+    try:
+        dt = datetime.datetime.strptime(text, "%Y-%m-%d").date()
+        return dt
+    except ValueError as e1:
+        match= date_pat.match(text)
+        if not match: 
+            warnings.warn("Unparseable date: {0!r}".format(text))
+            return None # Unparseable date case.
+        y, m, d = map(int, (match.group('y'), match.group('m'), match.group('d')))
+        if y >= 9900:
+            return None # Domain null case.
+        try:
+            dt= datetime.date( y, m, d )
+            return dt
+        except ValueError as e2:
+            pass
+        # We know m and d don't make sense together.
+        # We can coerce m into 1 .. 12 range. Which might be sufficient.
+        m=  1 if m < 1 else m if m <= 12 else 12
+        # m= max(1, min(m, 12))
+        try:
+            dt= datetime.date( y, m, d )
+            return dt
+        except ValueError as e3:
+            pass
+        # Sigh.
+        # Coercing d is tougher because of the days per month issue.
+        d_last= last_day(y, m)
+        d= 1 if d < 1 else d if d <= d_last else d_last
+        # d= max(1, min(d, d_last))
+        try:
+            dt= datetime.date( y, m, d )
+            return dt
+        except ValueError as e4:
+            pass
+        # Any other bright ideas?
+        warnings.warn("Uncoerceable date: {0!r}".format(text))
+        return None # Uncoerceable data case.
 
 if __name__ == "__main__":
     main()
