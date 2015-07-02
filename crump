@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Requires PyYAML <http://pyyaml.org/>
 import yaml
 import csvkit
 import os
