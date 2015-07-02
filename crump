@@ -306,7 +306,10 @@ def main():
                             elif line[name] == "9999-99-99":
                                 line[name] = None
                             else:
-                                line[name] = convert_date(line[name])
+                                try:
+                                    line[name] = convert_date(line[name])
+                                except:
+                                    line[name] = None
 
                         # Format ZIP codes properly.
                         elif "zip" in name:
