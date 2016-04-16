@@ -99,7 +99,6 @@ def main():
 			 try:
 				 f = urlopen(req)
 				 print "Downloading data from " + url
-				 local_file = open('current.zip', 'w')
 				 local_file.write(f.read())
 				 local_file.close()
 
@@ -110,6 +109,7 @@ def main():
 			 except:
 				 pass
                  print "Downloading address data from " + url
+                 local_file = open('addresses.db', 'w')
 
     # Create the output directory.
     try:
