@@ -22,14 +22,14 @@ import calendar
 parser = argparse.ArgumentParser(
     description="A parser for Virginia State Corporation Commission records",
     epilog="https://github.com/openva/crump/")
-parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: %(default)s)", metavar="file.txt")
+parser.add_argument('-i', '--input', default='cisbemon/', help="directory of SCC CSVs (default: %(default)s)", metavar="input_dir/")
 parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV", metavar="output_dir")
 parser.add_argument('-t', '--transform', help="format properly the date, ZIP, etc. fields", action='store_true')
 parser.add_argument('-d', '--download', help="download the data file, if missing", action='store_true')
 parser.add_argument('-e', '--elasticsearch', help="create Elasticsearch bulk API data", action='store_true')
 parser.add_argument('-m', '--map', help="generate Elasticsearch index map", action='store_true')
 args = parser.parse_args()
-master_file = args.input
+source_dir = args.input
 output_dir = args.output
 transform = args.transform
 download = args.download
@@ -43,19 +43,19 @@ def date_handler(obj):
 def main():
 
     # Make sure the master file exists
-    if os.path.isfile(master_file) is False:
+    if os.path.isfile(source_dir) is False:
         
         # If it doesn't exist, download it.
         if download:
             
             from urllib2 import Request, urlopen, HTTPError
-            url = 'https://s3.amazonaws.com/virginia-business/current.zip'
+            url = 'https://www.scc.virginia.gov/clk/data/CISbemon.CSV.zip'
             req = Request(url)
 
             try:
                 f = urlopen(req)
                 print "Downloading business data from " + url
-                local_file = open('current.zip', 'w')
+                local_file = open('cisbemon.zip', 'w')
                 local_file.write(f.read())
                 local_file.close()
 
@@ -65,10 +65,10 @@ def main():
 
             # Uncompress the ZIP file.
             archive = zipfile.ZipFile("current.zip")
-            archive.extract('cisbemon.txt')
+            archive.extractall(source_dir)
 
         else:
-            print "Error: cisbemon.txt data file not found"
+            print "Error: " + source_dir + " data directory not found"
             sys.exit()
 
     # If we're going to be transforming the data, retrieve (if necessary) and connect to our
