@@ -49,7 +49,7 @@ def main():
         if download:
             
             from urllib2 import Request, urlopen, HTTPError
-            url = 'https://www.scc.virginia.gov/clk/data/CISbemon.CSV.zip'
+            url = 'http://www.scc.virginia.gov/clk/data/CISbemon.CSV.zip'
             req = Request(url)
 
             try:
