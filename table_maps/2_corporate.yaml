@@ -2,104 +2,76 @@
   alt_name:    foreign
   description: Whether the corporation was formed outside of VA
   type:        A
-  start:       2
-  length:      1
-- name:        corp-id
+- name:        EntityID
   alt_name:    id
   description: Unique number assigned to Corp
   type:        A
-  start:       2
-  length:      7
   search: 
     match:     exact
-- name:        corp-name
+- name:        Name
   alt_name:    name
   description: Name of Corporation
   type:        A
-  start:       9
-  length:      100
-- name:        corp-status
+- name:        Status
   alt_name:    status
   description: Corporation Status
   type:        A
-  start:       109
-  length:      2
   table_id:    01
-- name:        corp-status-date
+- name:        StatusDate
   alt_name:    status_date
   description: Date of Last Status Change
   type:        N
-  start:       111
-  length:      8
   search:
     type:      date
-- name:        corp-per-dur
+- name:        Duration
   alt_name:    expiration_date
   description: Date on which Corp will expire
   type:        N
-  start:       119
-  length:      8
   search:
     type:      date
-- name:        corp-inc-date
+- name:        IncorpDate
   alt_name:    incorporation_date
   description: Date of Incorporation
   type:        N
-  start:       127
-  length:      8
   search:
     type:      date
-- name:        corp-state-inc
+- name:        IncorpState
   alt_name:    state_formed
   description: State of Formation
   type:        A
-  start:       135
-  length:      2
   table_id:    02
   search:
     match:     exact
-- name:        corp-ind-code
+- name:        IndustryCode
   alt_name:    industry
   description: Industry Code
   type:        A
-  start:       137
-  length:      2
   table_id:    03
-- name:        corp-street1
+- name:        Street1
   alt_name:    street_1
   description: Principal Street
   group:       address
   type:        A
-  start:       139
-  length:      45
-- name:        corp-street2
+- name:        Street2
   alt_name:    street_2
   description: Principal Street
   group:       address
   type:        A
-  start:       184
-  length:      45
-- name:        corp-city
+- name:        City
   alt_name:    city
   description: Principal City
   group:       address
   type:        A
-  start:       229
-  length:      23
-- name:        corp-state
+- name:        State
   alt_name:    state
   description: Principal State
   group:       address
   type:        A
-  start:       252
-  length:      2
-- name:        corp-zip
+- name:        Zip
   alt_name:    zip
   description: Principal ZIP
   group:       address
   type:        N
-  start:       254
-  length:      9
   search: 
     match:     exact
 - name:        corp-coordinates
@@ -108,221 +80,105 @@
   group:       address
   search:
     type:      geo_shape
-- name:        corp-po-eff-date
+- name:        PrinOffEffDate
   alt_name:    address_date
   description: Effective date of Principal address
   type:        N
-  start:       263
-  length:      8
   search:
     type:      date
-- name:        corp-ra-name
+- name:        RA-Name
   alt_name:    agent_name
   description: Registered Agent
   type:        A
-  start:       271
-  length:      100
-- name:        corp-ra-street1
+- name:        RA-Street1
   alt_name:    agent_street_1
   description: RA Street
   group:       ra_address
   type:        A
-  start:       371
-  length:      45
-- name:        corp-ra-street2
+- name:        RA-Street2
   alt_name:    agent_street_2
   description: RA Street
   group:       ra_address
   type:        A
-  start:       416
-  length:      45
-- name:        corp-ra-city
+- name:        RA-City
   alt_name:    agent_city
   description: RA City
   group:       ra_address
   type:        A
-  start:       461
-  length:      23
-- name:        corp-ra-state
+- name:        RA-State
   alt_name:    agent_state
   description: RA State
   group:       ra_address
   type:        A
-  start:       484
-  length:      2
-- name:        corp-ra-zip
+- name:        RA-Zip
   alt_name:    agent_zip
   description: RA ZIP
   group:       ra_address
   type:        N
-  start:       486
-  length:      9
-- name:        corp-ra-eff-date
+- name:        RA-EffDate
   alt_name:    agent_date
   description: Effective date of RA
   type:        N
-  start:       495
-  length:      8
   search:
     type:      date
-- name:        corp-ra-status
+- name:        RA-Status
   alt_name:    agent_status
   description: Corp RA Status
   type:        A
-  start:       503
-  length:      1
   table_id:    04
-- name:        corp-ra-loc
+- name:        RA-Loc
   alt_name:    agent_court_locality
   description: RA Court Locality
   type:        A
-  start:       504
-  length:      3
   table_id:    05
-- name:        corp-stock-ind
+- name:        StockInd
   alt_name:    stock_ind
   description: Stock Indicator
   type:        A
-  start:       507
-  length:      1
-- name:        corp-total-shares
+- name:        TotalShares
   alt_name:    total_shares
   description: Total Shares of Stock
   type:        N
-  start:       508
-  length:      11
   search:
     type:      long
-- name:        corp-merger-ind
+- name:        MergerInd
   alt_name:    merged
   description: Merger Indicator
   type:        A
-  start:       519
-  length:      1
-- name:        corp-asmt-ind
+- name:        AssessInd
   alt_name:    assessment
   description: Assessment Indicator
   type:        A
-  start:       520
-  length:      1
   table_id:    07
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock1
+  alt_name:    stock_1
+  description: Stock Class, Shares
   type:        A
-  start:       521
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       529
-  length:      11
-  search:
-    type:      integer
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock2
+  alt_name:    stock_2
+  description: Stock Class, Shares
   type:        A
-  start:       540
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       548
-  length:      11
-  search:
-    type:      integer
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock3
+  alt_name:    stock_3
+  description: Stock Class, Shares
   type:        A
-  start:       559
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       567
-  length:      11
-  search:
-    type:      integer
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock4
+  alt_name:    stock_4
+  description: Stock Class, Shares
   type:        A
-  start:       578
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       586
-  length:      11
-  search:
-    type:      integer
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock5
+  alt_name:    stock_5
+  description: Stock Class, Shares
   type:        A
-  start:       597
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       605
-  length:      11
-  search:
-    type:      integer
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock6
+  alt_name:    stock_6
+  description: Stock Class, Shares
   type:        A
-  start:       616
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       624
-  length:      11
-  search:
-    type:      integer
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock7
+  alt_name:    stock_7
+  description: Stock Class, Shares
   type:        A
-  start:       635
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       643
-  length:      11
-  search:
-    type:      integer
-- name:        corp-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        Stock8
+  alt_name:    stock_8
+  description: Stock Class, Shares
   type:        A
-  start:       654
-  length:      8
-  table_id:    12
-- name:        corp-stock-share-auth
-  alt_name:    number_shares
-  description: Number of Shares
-  type:        N
-  start:       662
-  length:      11
-  search:
-    type:      integer

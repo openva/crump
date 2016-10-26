@@ -1,18 +1,12 @@
-- name:        table-identifier
+- name:        TableID
   alt_name:    table-identifier
   description: ID for Specific Table
   type:        A
-  start:       2
-  length:      2
-- name:        table-code
+- name:        ColumnValue
   alt_name:    table-code
   description: Table code
   type:        A
-  start:       4
-  length:      10
-- name:        table-desc
+- name:        Description
   alt_name:    table-desc
   description: Value for Table Code
   type:        A
-  start:       14
-  length:      50
