@@ -64,7 +64,7 @@ def main():
                 sys.exit()
 
             # Uncompress the ZIP file.
-            archive = zipfile.ZipFile("current.zip")
+            archive = zipfile.ZipFile("cisbemon.zip")
             archive.extractall(source_dir)
 
         else:
