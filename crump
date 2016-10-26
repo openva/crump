@@ -42,7 +42,7 @@ def date_handler(obj):
 
 def main():
 
-    # Make sure the master file exists
+    # Make sure the source data exists
     if os.path.isfile(source_dir) is False:
         
         # If it doesn't exist, download it.
@@ -200,233 +200,233 @@ def main():
     character_map = yaml.load(stream)
 
     # Count the number of lines in the master file.
-    last_file = ""
     current_map = None
     csv_writer = None
     json_file = None
     
-    with open(master_file) as f:
+    # List the names of the files, in the order in which we'll iterate through them.
+    data_files = ['Tables', 'Corp', 'LP', 'Amendment', 'Officer', 'Name.History', 'Merger', 'Reserved.Name' 'LLC',]
 
-        # If we're transforming data, and thus adding geodata, connect to our address database.
-        if transform:
-            db = sqlite3.connect('addresses.db')
-            cursor = db.cursor()
-        
-        # Iterate through our master file and start converting the data.
-        for current_line in enumerate(f):
+    # Iterate through each file, one by one.
+    for data_file in data_files:
+        with open(data_file + '.csv') as f:
 
-            # The file number is the first character on each line.
-            file_number = current_line[1][1]
+            # If we're transforming data, and thus adding geodata, connect to our address database.
+            if transform:
+                db = sqlite3.connect('addresses.db')
+                cursor = db.cursor()
 
-            if file_number in field_maps:
+            # Retrieve the correct field map and set up the file.
+            current_map = field_maps[file_number]["map"]
+            current_name = field_maps[file_number]["name"]
+            csv_name = current_name.replace(".yaml", ".csv")
+            json_name = current_name.replace(".yaml", ".json")
+            last_file = file_number
+            csv_file = open(output_dir + "/" + csv_name, 'w')
+            json_file = open(output_dir + "/" + json_name, 'w')
+            field_names = []
+            for field in current_map:
+                # Optionally substitute cleaner field names.
+                if transform and 'alt_name' in field.keys():
+                    field_names.append(field["alt_name"])
+                else:
+                    field_names.append(field["name"])
+            field_tuple = tuple(field for field in field_names)
 
-                # If we've begun a new file.
-                if file_number != last_file:
+            # Start writing the CSV data.
+            csv_writer = csvkit.DictWriter(csv_file, field_tuple)
+            csv_writer.writeheader()
+            print "Creating", csv_name.replace(".csv", "")
 
-                    # If we've just finished with file 1, read it into memory to use elsewhere.
-                    if last_file == '1':
-                        table_1 = csvkit.CSVKitDictReader(open(output_dir + "/1_tables.csv", 'rb'))
-                        lookup_table = []
-                        for row in table_1:
-                            lookup_table.append(row)
+            # Start a new JSON file with an opening bracket, unless this is for
+            # Elasticsearch data.
+            if elasticsearch == False:
+                json_file.write('[')
+            
+            # Iterate through our data file and start converting the data.
+            for current_line in enumerate(f):
 
-                    # Terminate the prior JSON file: remove the trailing comma and add a bracket,
-                    # unless this is for Elasticsearch.
-                    if last_file != "":
-                        json_file.seek(-2, os.SEEK_END)
-                        json_file.truncate()
-                        if elasticsearch == False:
-                            json_file.write(']')
+                # The file number is the first character on each line.
+                file_number = current_line[1][1]
 
-                    # This is a new file: retrieve the correct field map and set up the file.
-                    current_map = field_maps[file_number]["map"]
-                    current_name = field_maps[file_number]["name"]
-                    csv_name = current_name.replace(".yaml", ".csv")
-                    json_name = current_name.replace(".yaml", ".json")
-                    last_file = file_number
-                    csv_file = open(output_dir + "/" + csv_name, 'w')
-                    json_file = open(output_dir + "/" + json_name, 'w')
-                    field_names = []
+                if file_number in field_maps:
+
+                    # Break the line up into pieces.
+                    line = {}
                     for field in current_map:
+
+                        # Skip any fields that lack start data -- those are columns that don't exist in
+                        # the master file, but that are added during the parsing process, and are
+                        # included in the map in order to have them indexed by Elasticsearch.
+                        if 'start' in field:
+                            pass
+                        else:
+                            continue
+                        start = int(field["start"])
+                        length = int(field["length"])    
+                                        
                         # Optionally substitute cleaner field names.
                         if transform and 'alt_name' in field.keys():
-                            field_names.append(field["alt_name"])
+                            name = field["alt_name"]
                         else:
-                            field_names.append(field["name"])
-                    field_tuple = tuple(field for field in field_names)
+                            name = field["name"]
+                        end = start + length
+                        if 'table_id' in field:
+                            table_id = field["table_id"]
+                        else:
+                            table_id = None
+                        line[name] = current_line[1][start:end].strip()
+                        if "corp-id" in name:
+                            corp_id = line[name]
 
-                    # Start writing the CSV data.
-                    csv_writer = csvkit.DictWriter(csv_file, field_tuple)
-                    csv_writer.writeheader()
-                    print "Creating", csv_name.replace(".csv", "")
+                        # If we have elected, via command-line option, to transform field contents.
+                        if transform:
 
-                    # Start a new JSON file with an opening bracket, unless this is for
-                    # Elasticsearch data.
-                    if elasticsearch == False:
-                        json_file.write('[')
+                            # Clean up dates.
+                            if "date" in name:
 
-                # Break the line up into pieces.
-                line = {}
-                for field in current_map:
+                                # Format dates properly.
+                                line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
+                                if line[name] == "0000-00-00":
+                                    line[name] = None
+                                elif line[name] == "9999-99-99":
+                                    line[name] = None
+                                else:
+                                    try:
+                                        line[name] = convert_date(line[name])
+                                    except:
+                                        line[name] = None
 
-                    # Skip any fields that lack start data -- those are columns that don't exist in
-                    # the master file, but that are added during the parsing process, and are
-                    # included in the map in order to have them indexed by Elasticsearch.
-                    if 'start' in field:
-                        pass
-                    else:
-                        continue
-                    start = int(field["start"])
-                    length = int(field["length"])    
-                                    
-                    # Optionally substitute cleaner field names.
-                    if transform and 'alt_name' in field.keys():
-                        name = field["alt_name"]
-                    else:
-                        name = field["name"]
-                    end = start + length
-                    if 'table_id' in field:
-                        table_id = field["table_id"]
-                    else:
-                        table_id = None
-                    line[name] = current_line[1][start:end].strip()
-                    if "corp-id" in name:
-                        corp_id = line[name]
+                            # Format ZIP codes properly.
+                            elif "zip" in name:
+                                if len(line[name]) == 9:
+                                    if line[name] == '000000000':
+                                        line[name] = ''
+                                    if line[name][-4:] == '0000':
+                                        line[name] = line[name][:-4]
+                                    else:
+                                        line[name] = line[name][:-4] + '-' + line[name][-4:]
 
-                    # If we have elected, via command-line option, to transform field contents.
-                    if transform:
+                            # Indicate whether a corporation is foreign or domestic, using True/False
+                            # values instead of the F/0 values the SCC uses in 2_corporate.
+                            elif name == 'foreign':
+                                if line[name] == '0':
+                                    line[name] = False
+                                else:
+                                    line[name] = True
 
-                        # Clean up dates.
-                        if "date" in name:
+                            # Indicate whether a corporation is foreign or domestic, using True/False
+                            # values instead of the M/L values the SCC uses in 3_lp.
+                            elif name == 'domestic':
+                                if line[name] == 'M':
+                                    line[name] = False
+                                else:
+                                    line[name] = True
 
-                            # Format dates properly.
-                            line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
-                            if line[name] == "0000-00-00":
-                                line[name] = None
-                            elif line[name] == "9999-99-99":
-                                line[name] = None
-                            else:
-                                try:
-                                    line[name] = convert_date(line[name])
-                                except:
+                            # The total share count sometimes has a leading zero. Strip it off.
+                            elif name == 'total_shares':
+                                line[name] = int(line[name]) + 0
+
+                                # Share counts of 99,999,999,999 seem to follow the practice of 9s
+                                # indicating a null value.
+                                if line[name] == 99999999999:
                                     line[name] = None
 
-                        # Format ZIP codes properly.
-                        elif "zip" in name:
-                            if len(line[name]) == 9:
-                                if line[name] == '000000000':
-                                    line[name] = ''
-                                if line[name][-4:] == '0000':
-                                    line[name] = line[name][:-4]
-                                else:
-                                    line[name] = line[name][:-4] + '-' + line[name][-4:]
+                            # Remove extraneous internal whitespace.
+                            if type(line[name]) is str:
+                                line[name] = re.sub("\s{2,}", " ", line[name])
 
-                        # Indicate whether a corporation is foreign or domestic, using True/False
-                        # values instead of the F/0 values the SCC uses in 2_corporate.
-                        elif name == 'foreign':
-                            if line[name] == '0':
-                                line[name] = False
+                            # Replace shorthand values with the full version, from the lookup table.
+                            if table_id != None:
+                                for index, conversion in enumerate(lookup_table):
+                                    if int(conversion["table-identifier"]) == table_id:
+                                        if conversion["table-code"] == line[name]:
+                                            line[name] = conversion["table-desc"]
+                                            break
+
+                    # If we have geodata to be inserted.
+                    if transform:
+                        #if "group" in current_map:
+                        #and we have a group with "address" in its name and it has a member of
+                        #search > type with the value "geo_point":
+                        if file_number == '2' or file_number == '3' or file_number == '9':
+                        
+                            # Collapse our address columns and save that as a hash, to query the
+                            # database for. Convert to a byte str to avoid fatal Unicode-related erors
+                            # for the odd problematic character.
+                            try:
+                                address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
+                                    + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
+
+                            # In the very rare instance of a character encoding error, fix the error
+                            # and try again.
+                            except UnicodeEncodeError as exception:
+                                for key in line:
+                                    if line[key] != None:
+                                        line[key] = replace_non_ascii(line[key])
+                                address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
+                                    + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
+
                             else:
-                                line[name] = True
+                                # If the hashed, combined string is already stored in the database, then
+                                # we have coordinates for it.
+                                hash_param = (address_hash,)
+                                cursor.execute("SELECT latitude, longitude FROM addresses WHERE address_hash = ?", hash_param)
+                                coordinates = cursor.fetchone()
+                                if coordinates is not None:
+                                    # FIX THE BELOW -- we should not be naming "coordinates" manually,
+                                    # but instead using the identified field name.
+                                    line['coordinates'] = [coordinates[1], coordinates[0]]
 
-                        # Indicate whether a corporation is foreign or domestic, using True/False
-                        # values instead of the M/L values the SCC uses in 3_lp.
-                        elif name == 'domestic':
-                            if line[name] == 'M':
-                                line[name] = False
-                            else:
-                                line[name] = True
+                    try:
+                        csv_writer.writerow(line)
+                    except UnicodeDecodeError as exception:
+                        for key in line:
+                            if line[key] != None:
+                                line[key] = replace_non_ascii(line[key])
+                        csv_writer.writerow(line)
 
-                        # The total share count sometimes has a leading zero. Strip it off.
-                        elif name == 'total_shares':
-                            line[name] = int(line[name]) + 0
+                    # If we’re creating Elasticsearch bulk API import files.
+                    if elasticsearch:
+                        index = dict()
+                        index['index'] = dict()
+                        index['index']['_index'] = 'business'
+                        index['index']['_type'] = file_number
+                        json.dump(index, json_file)
+                        json_file.write(',\n')
 
-                            # Share counts of 99,999,999,999 seem to follow the practice of 9s
-                            # indicating a null value.
-                            if line[name] == 99999999999:
-                                line[name] = None
+                    # Make a few modifications to the data before writing it as JSON. (CSV only has
+                    # columns, while of course JSON can have nested data, so we take this opportunity
+                    # to nest some data.)
+                    if transform:
+                        if 'coordinates' in line:
+                            line['location'] = dict()
+                            line['location']['coordinates'] = line['coordinates']
+                            line['location']['type'] = 'point'
+                            del line['coordinates']
 
-                        # Remove extraneous internal whitespace.
-                        if type(line[name]) is str:
-                            line[name] = re.sub("\s{2,}", " ", line[name])
+                    # Save the JSON data.
+                    json.dump(line, json_file, default=date_handler)
 
-                        # Replace shorthand values with the full version, from the lookup table.
-                        if table_id != None:
-                            for index, conversion in enumerate(lookup_table):
-                                if int(conversion["table-identifier"]) == table_id:
-                                    if conversion["table-code"] == line[name]:
-                                        line[name] = conversion["table-desc"]
-                                        break
+                    # Add a separating comma between elements.
+                    if elasticsearch:
+                       json_file.write('\n')
+                    else:
+                       json_file.write(',\n')
 
-                # If we have geodata to be inserted.
-                if transform:
-                    #if "group" in current_map:
-                    #and we have a group with "address" in its name and it has a member of
-                    #search > type with the value "geo_point":
-                    if file_number == '2' or file_number == '3' or file_number == '9':
-                    
-                        # Collapse our address columns and save that as a hash, to query the
-                        # database for. Convert to a byte str to avoid fatal Unicode-related erors
-                        # for the odd problematic character.
-                        try:
-                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
-                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
+        # Terminate the prior JSON file: remove the trailing comma and add a bracket, unless this
+        # is for Elasticsearch.
+        json_file.seek(-2, os.SEEK_END)
+        json_file.truncate()
+        if elasticsearch == False:
+            json_file.write(']')
 
-                        # In the very rare instance of a character encoding error, fix the error
-                        # and try again.
-                        except UnicodeEncodeError as exception:
-                            for key in line:
-                                if line[key] != None:
-                                    line[key] = replace_non_ascii(line[key])
-                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
-                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
-
-                        else:
-                            # If the hashed, combined string is already stored in the database, then
-                            # we have coordinates for it.
-                            hash_param = (address_hash,)
-                            cursor.execute("SELECT latitude, longitude FROM addresses WHERE address_hash = ?", hash_param)
-                            coordinates = cursor.fetchone()
-                            if coordinates is not None:
-                                # FIX THE BELOW -- we should not be naming "coordinates" manually,
-                                # but instead using the identified field name.
-                                line['coordinates'] = [coordinates[1], coordinates[0]]
-
-                try:
-                    csv_writer.writerow(line)
-                except UnicodeDecodeError as exception:
-                    for key in line:
-                        if line[key] != None:
-                            line[key] = replace_non_ascii(line[key])
-                    csv_writer.writerow(line)
-
-                # If we’re creating Elasticsearch bulk API import files.
-                if elasticsearch:
-                    index = dict()
-                    index['index'] = dict()
-                    index['index']['_index'] = 'business'
-                    index['index']['_type'] = file_number
-                    json.dump(index, json_file)
-                    json_file.write(',\n')
-
-                # Make a few modifications to the data before writing it as JSON. (CSV only has
-                # columns, while of course JSON can have nested data, so we take this opportunity
-                # to nest some data.)
-                if transform:
-                    if 'coordinates' in line:
-                        line['location'] = dict()
-                        line['location']['coordinates'] = line['coordinates']
-                        line['location']['type'] = 'point'
-                        del line['coordinates']
-
-                # Save the JSON data.
-                json.dump(line, json_file, default=date_handler)
-
-                # Add a separating comma between elements.
-                if elasticsearch:
-                   json_file.write('\n')
-                else:
-                   json_file.write(',\n')
+        # If we've just finished with file 1, read it into memory to use elsewhere.
+        if data_file == 'Tables':
+            table_1 = csvkit.CSVKitDictReader(open(output_dir + "/1_tables.csv", 'rb'))
+            lookup_table = []
+            for row in table_1:
+                lookup_table.append(row)
 
     # Now that all files are output, break them into Elasticsearch-sized chunks.
     if elasticsearch:
