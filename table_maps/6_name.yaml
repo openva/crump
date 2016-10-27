@@ -1,31 +1,23 @@
-- name:        name-corp-id
+- name:        EntityID
   alt_name:    id
   description: Corp/LP/LLC Id
   type:        A
-  start:       2
-  length:      7
   search: 
     match:     exact
-- name:        name-status
+- name:        NameStatus
   alt_name:    status
   description: Name Status
   type:        A
-  start:       9
-  length:      2
   transform:
     50:        fictitious name
     70:        old name
-- name:        name-corp-name
-  alt_name:    name
-  description: Corp/LP/LLC Name
-  type:        A
-  start:       11
-  length:      100
-- name:        name-eff-date
+- name:        NameEffDate
   alt_name:    date
   description: Effective Date of Name
   type:        N
-  start:       111
-  length:      8
   search: 
     type:      date
+- name:        EntityName
+  alt_name:    name
+  description: Corp/LP/LLC Name
+  type:        A

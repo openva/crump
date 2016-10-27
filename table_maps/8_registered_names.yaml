@@ -1,86 +1,65 @@
-- name:        res-number
+- name:        ResNumber
   alt_name:    id
-  description: Reserved/Registered Number
+  description: Reservation number assigned to reserved/registered name
   type:        A
-  start:       2
-  length:      7
   search: 
     match:     exact
-- name:        res-type
+- name:        Type
   alt_name:    type
-  description: Corporate/LP Indicator
+  description: Entity type
   type:        A
-  start:       9
-  length:      1
   transform:
     C:         corporate
     L:         limited partnership
     X:         limited liability corporation
-- name:        res-status
+- name:        Status
   alt_name:    status
-  description: Reserved/Registered Indicator
+  description: Reservation status
   type:        A
-  start:       10
-  length:      2
   transform:
     60:        registered
     61:        reserved
-- name:        res-name
+- name:        Name
   alt_name:    name
-  description: Reserved/Registered Name
+  description: Registered or Reserved entity name
   type:        A
-  start:       12
-  length:      100
-- name:        res-exp-date
+- name:        ExpireDate
   alt_name:    date_expires
-  description: Expiration Date of Res/Reg Name
+  description: Registration/Reservation expiration date
   type:        N
-  start:       112
-  length:      8
   search:
     type:      date
-- name:        res-requestor
+- name:        Requestor
   alt_name:    requestor
-  description: Name of Requestor Holding Name
+  description: Requestor Name
   type:        A
-  start:       120
-  length:      100
-- name:        res-street1
+- name:        Street1
   alt_name:    street_1
-  description: Street 1 of Requestor
+  description: Requestor address street 1
   group:       address
   type:        A
-  start:       220
-  length:      45
-- name:        res-street2
+- name:        Street2
   alt_name:    street_2
-  description: Street 2 of Requestor
+  description: Requestor address street 2
   group:       address
   type:        A
-  start:       264
-  length:      45
-- name:        res-city
+- name:        City
   alt_name:    city
-  description: City of Requestor
+  description: Requestor address city
   group:       address
   type:        A
-  start:       309
-  length:      23
-- name:        res-state
+- name:        State
   alt_name:    state
-  description: State of Requestor
+  description: Requestor address state
   group:       address
   type:        A
-  start:       333
-  length:      2
   search: 
     match:     exact
-- name:        res-zip
+  table_id:    02
+- name:        Zip
   alt_name:    zip
-  description: ZIP of Requestor
+  description: Requestor address zip
   group:       address
   type:        N
-  start:       335
-  length:      9
   search: 
     match:     exact

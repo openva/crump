@@ -1,198 +1,91 @@
-- name:        hist-corp-id
+- name:        Entity ID
   alt_name:    id
-  description: Corporate/LP/LLC Id
+  description: Entity ID provided to a business entity by the SCC
   type:        A
-  start:       2
-  length:      7
   search:
     match:     exact
-- name:        hist-amend-ind
-  alt_name:    amended
-  description: Amend Indicator
-  type:        A
-  start:       9
-  length:      1
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       10
-  length:      1
-  table_id:    19
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       11
-  length:      1
-  table_id:    19
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       12
-  length:      1
-  table_id:    19
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       13
-  length:      1
-  table_id:    19
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       14
-  length:      1
-  table_id:    19
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       15
-  length:      1
-  table_id:    19
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       16
-  length:      1
-  table_id:    19
-- name:        hist-amend-type
-  alt_name:    amendment_type
-  description: Corp/LP/LLC Amend Types
-  type:        A
-  start:       17
-  length:      1
-  type:        A
-  start:       18
-  table_id:    19
-- name:        hist-amend-date
+- name:        AmenDate
   alt_name:    date
   description: Effective date of Amendment
   type:        N
-  start:       18
-  length:      8
   search:
     type:      date
-- name:        hist-stock-info
-  alt_name:    stock_info
-  description: contains count of occurrances for the following fields
-  type:        N
-  start:       27
-  length:      3
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       30
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+- name:        AmenType1
+  alt_name:    amendment_type_1
+  description: Amendment type 1
   type:        A
-  start:       41
-  length:      8
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       49
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+  table_id:    19
+- name:        AmenType2
+  alt_name:    amendment_type_2
+  description: Amendment type 2
   type:        A
-  start:       60
-  length:      8
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       68
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+  table_id:    19
+- name:        AmenType3
+  alt_name:    amendment_type_3
+  description: Amendment type 3
   type:        A
-  start:       79
-  length:      8
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       87
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+  table_id:    19
+- name:        AmenType4
+  alt_name:    amendment_type_4
+  description: Amendment type 4
   type:        A
-  start:       98
-  length:      8
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       106
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+  table_id:    19
+- name:        AmenType5
+  alt_name:    amendment_type_5
+  description: Amendment type 5
   type:        A
-  start:       117
-  length:      8
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       125
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+  table_id:    19
+- name:        AmenType6
+  alt_name:    amendment_type_6
+  description: Amendment type 6
   type:        A
-  start:       136
-  length:      8
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       144
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+  table_id:    19
+- name:        AmenType7
+  alt_name:    amendment_type_7
+  description: Amendment type 7
   type:        A
-  start:       155
-  length:      8
-- name:        hist-old-shares_auth
-  alt_name:    shares_auth
-  description: Shares Auth
-  type:        N
-  start:       163
-  length:      11
-  search:
-    type:      text
-- name:        hist-old-stock-class
-  alt_name:    stock_class
-  description: Stock Class
+  table_id:    19
+- name:        AmenType8
+  alt_name:    amendment_type_8
+  description: Amendment type 8
   type:        A
-  start:       174
-  length:      8
+  table_id:    19
+
+
+
+
+
+
+
+- name:        Stock1
+  alt_name:    stock_class_1
+  description: Stock class (shares) 1
+  type:        A
+- name:        Stock2
+  alt_name:    stock_class_2
+  description: Stock class (shares) 2
+  type:        A
+- name:        Stock3
+  alt_name:    stock_class_3
+  description: Stock class (shares) 3
+  type:        A
+- name:        Stock4
+  alt_name:    stock_class_4
+  description: Stock class (shares) 4
+  type:        A
+- name:        Stock5
+  alt_name:    stock_class_5
+  description: Stock class (shares) 5
+  type:        A
+- name:        Stock6
+  alt_name:    stock_class_6
+  description: Stock class (shares) 6
+  type:        A
+- name:        Stock7
+  alt_name:    stock_class_7
+  description: Stock class (shares) 7
+  type:        A
+- name:        Stock8
+  alt_name:    stock_class_8
+  description: Stock class (shares) 8
+  type:        A

@@ -1,51 +1,31 @@
-- name:        merg-corp-id
+- name:        EntityID
   alt_name:    id
-  description: Corporate Id
+  description: Entity ID provided to a business entity by the SCC
   type:        A
-  start:       2
-  length:      7
   search: 
     match:     exact
-- name:        merg-type
+- name:        MergerType
   alt_name:    type
-  description: Survivor/Non-Survivor Ind
+  description: 
   type:        A
-  start:       9
-  length:      1
   transform:
     N:         non-survivor
     S:         survivor
   search: 
     match:     exact
-- name:        merg-eff-date
+- name:        EffDate
   alt_name:    date
-  description: Effective date of merger
+  description: Merger Effective Date
   type:        N
-  start:       10
-  length:      8
   search:
     type:      date
-- name:        merg-surv-id
+- name:        SurvivorID
   alt_name:    survivor_id
-  description: Survivor Corp Id
+  description: Survivor Entity ID
   type:        A
-  start:       18
-  length:      7
   search: 
     match:     exact
-- name:        merg-surv-qualified
-  alt_name:    survivor_qualified
-  description: Survivor qualified in Virginia
+- name:        ForeignName
+  alt_name:    foreign_name
+  description: Name of foreign entity not qualified in VA
   type:        A
-  start:       18
-  length:      1
-  transform:
-    N:         false
-  search:
-    type:      boolean
-- name:        merg-for-corp-name
-  alt_name:    unqualified_name
-  description: Name of Foreign Corp not qualified in VA
-  type:        A
-  start:       25
-  length:      100
