@@ -219,8 +219,8 @@ def main():
             data_file = data_file.lower()
 
             # Retrieve the correct field map and set up the file.
-            current_map = field_maps[file_number]["map"]
-            current_name = field_maps[file_number]["name"]
+            current_map = field_maps[data_file]["map"]
+            current_name = field_maps[data_file]["name"]
             csv_name = current_name.replace(".yaml", ".csv")
             json_name = current_name.replace(".yaml", ".json")
             last_file = file_number
@@ -248,10 +248,7 @@ def main():
             # Iterate through our data file and start converting the data.
             for current_line in enumerate(f):
 
-                # The file number is the first character on each line.
-                file_number = current_line[1][1]
-
-                if file_number in field_maps:
+                if data_file in field_maps:
 
                     # Break the line up into pieces.
                     line = {}
@@ -351,7 +348,7 @@ def main():
                         #if "group" in current_map:
                         #and we have a group with "address" in its name and it has a member of
                         #search > type with the value "geo_point":
-                        if file_number == '2' or file_number == '3' or file_number == '9':
+                        if data_file == 'corp' or data_file == 'llc' or data_file == 'lp':
                         
                             # Collapse our address columns and save that as a hash, to query the
                             # database for. Convert to a byte str to avoid fatal Unicode-related erors
@@ -393,7 +390,7 @@ def main():
                         index = dict()
                         index['index'] = dict()
                         index['index']['_index'] = 'business'
-                        index['index']['_type'] = file_number
+                        index['index']['_type'] = data_file
                         json.dump(index, json_file)
                         json_file.write(',\n')
 
