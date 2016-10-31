@@ -208,7 +208,7 @@ def main():
 
     # Iterate through each file, one by one.
     for data_file in data_files:
-        with open(data_file + '.csv') as f:
+        with open('cisbemon/' + data_file + '.csv') as f:
 
             # If we're transforming data, and thus adding geodata, connect to our address database.
             if transform:
