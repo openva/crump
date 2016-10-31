@@ -125,12 +125,11 @@ def main():
         # Import the data from YAML.
         field_map = yaml.load(stream)
 
-        head, tail = os.path.split(csv_file)
-
-        map_id = tail[0]
+        filename = os.path.basename(csv_file)
+        map_id = filename.replace('.yaml', '')
         field_maps[map_id] = {}
         field_maps[map_id]["map"] = field_map
-        field_maps[map_id]["name"] = tail
+        field_maps[map_id]["name"] = map_id
 
     # If an Elasticsearch mapping has been requested via command-line switch.
     if elasticsearch_map:
