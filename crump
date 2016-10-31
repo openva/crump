@@ -43,7 +43,7 @@ def date_handler(obj):
 def main():
 
     # Make sure the source data exists
-    if os.path.isfile(source_dir) is False:
+    if os.path.isdir(source_dir) is False:
         
         # If it doesn't exist, download it.
         if download:
