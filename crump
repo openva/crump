@@ -215,6 +215,9 @@ def main():
                 db = sqlite3.connect('addresses.db')
                 cursor = db.cursor()
 
+            # We want the data file name as a lowercase string now.
+            data_file = data_file.lower()
+
             # Retrieve the correct field map and set up the file.
             current_map = field_maps[file_number]["map"]
             current_name = field_maps[file_number]["name"]
