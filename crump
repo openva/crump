@@ -204,7 +204,7 @@ def main():
     json_file = None
     
     # List the names of the files, in the order in which we'll iterate through them.
-    data_files = ['Tables', 'Corp', 'LP', 'Amendment', 'Officer', 'Name.History', 'Merger', 'Reserved.Name' 'LLC',]
+    data_files = ['Tables', 'Corp', 'LP', 'Amendment', 'Officer', 'Name.History', 'Merger', 'Reserved.Name', 'LLC',]
 
     # Iterate through each file, one by one.
     for data_file in data_files:
@@ -244,7 +244,10 @@ def main():
             # Elasticsearch data.
             if elasticsearch == False:
                 json_file.write('[')
-            
+
+            # Instantiate a CSV reader.
+            reader = csvkit.DictReader(f)
+
             # Iterate through our data file and start converting the data.
             for current_line in enumerate(f):
 
