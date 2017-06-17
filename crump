@@ -202,9 +202,15 @@ def main():
     current_map = None
     csv_writer = None
     json_file = None
-    
+
+    # Read Tables.csv into memory to use elsewhere.
+    table_1 = csvkit.CSVKitDictReader(open("cisbemon/Tables.csv", 'rb'))
+    lookup_table = []
+    for row in table_1:
+        lookup_table.append(row)
+
     # List the names of the files, in the order in which we'll iterate through them.
-    data_files = ['Tables', 'Corp', 'LP', 'Amendment', 'Officer', 'Name.History', 'Merger', 'Reserved.Name', 'LLC',]
+    data_files = ['Corp', 'LP', 'Amendment', 'Officer', 'Name.History', 'Merger', 'Reserved.Name', 'LLC',]
 
     # Iterate through each file, one by one.
     for data_file in data_files:
@@ -308,11 +314,11 @@ def main():
 
                                 # Indicate whether a corporation is foreign or domestic, using True/False
                                 # values instead of the F/0 values the SCC uses in 2_corporate.
-                                elif name == 'foreign':
-                                    if line[name] == '0':
-                                        line[name] = False
+                                elif name == 'state_formed':
+                                    if line[name] == 'VA':
+                                        line['foreign'] = False
                                     else:
-                                        line[name] = True
+                                        line['foreign'] = True
 
                                 # Indicate whether a corporation is foreign or domestic, using True/False
                                 # values instead of the M/L values the SCC uses in 3_lp.
@@ -332,15 +338,19 @@ def main():
                                         line[name] = None
 
                                 # Remove extraneous internal whitespace.
-                                if type(line[name]) is str:
-                                    line[name] = re.sub("\s{2,}", " ", line[name])
+                                try:
+                                    if type(line[name]) is str:
+                                        line[name] = re.sub("\s{2,}", " ", line[name])
+                                except:
+                                    pass
 
                                 # Replace shorthand values with the full version, from the lookup table.
                                 if table_id != None:
+                                    print lookup_table
                                     for index, conversion in enumerate(lookup_table):
-                                        if int(conversion["table-identifier"]) == table_id:
-                                            if conversion["table-code"] == line[name]:
-                                                line[name] = conversion["table-desc"]
+                                        if int(conversion["TableID"]) == table_id:
+                                            if conversion["ColumnValue"] == line[name]:
+                                                line[name] = conversion["Description"]
                                                 break
 
                         # If we have geodata to be inserted.
@@ -422,13 +432,6 @@ def main():
         json_file.truncate()
         if elasticsearch == False:
             json_file.write(']')
-
-        # If we've just finished with file 1, read it into memory to use elsewhere.
-        if data_file == 'Tables':
-            table_1 = csvkit.CSVKitDictReader(open(output_dir + "/1_tables.csv", 'rb'))
-            lookup_table = []
-            for row in table_1:
-                lookup_table.append(row)
 
     # Now that all files are output, break them into Elasticsearch-sized chunks.
     if elasticsearch:

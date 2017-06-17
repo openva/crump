@@ -1,7 +1,3 @@
-- name:        corp-foreign
-  alt_name:    foreign
-  description: Whether the corporation was formed outside of VA
-  type:        A
 - name:        EntityID
   alt_name:    id
   description: Unique number assigned to Corp
