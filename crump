@@ -238,6 +238,7 @@ def main():
                     field_names.append(field["alt_name"])
                 else:
                     field_names.append(field["name"])
+                field_names.append("foreign")
             field_tuple = tuple(field for field in field_names)
 
             # Start writing the CSV data.
@@ -291,7 +292,6 @@ def main():
                                 if "date" in name:
 
                                     # Format dates properly.
-                                    line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
                                     if line[name] == "0000-00-00":
                                         line[name] = None
                                     elif line[name] == "9999-99-99":
@@ -323,10 +323,10 @@ def main():
                                 # Indicate whether a corporation is foreign or domestic, using True/False
                                 # values instead of the M/L values the SCC uses in 3_lp.
                                 elif name == 'domestic':
-                                    if line[name] == 'M':
-                                        line[name] = False
+                                    if current_line['IncorpState'] == 'VA':
+                                        line['domestic'] = True
                                     else:
-                                        line[name] = True
+                                        line['domestic'] = False
 
                                 # The total share count sometimes has a leading zero. Strip it off.
                                 elif name == 'total_shares':
@@ -346,7 +346,6 @@ def main():
 
                                 # Replace shorthand values with the full version, from the lookup table.
                                 if table_id != None:
-                                    print lookup_table
                                     for index, conversion in enumerate(lookup_table):
                                         if int(conversion["TableID"]) == table_id:
                                             if conversion["ColumnValue"] == line[name]:
