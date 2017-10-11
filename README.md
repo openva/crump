@@ -1,5 +1,7 @@
 # Crump
 
+[![Known Vulnerabilities](https://snyk.io/test/github/openva/crump/badge.svg)](https://snyk.io/test/github/openva/crump)
+
 A parser for [the Virginia State Corporation Commission's business entity records](https://www.scc.virginia.gov/clk/purch.aspx), which are provided as a single, enormous fixed-width file. Named for Beverley T. Crump, the first member of the State Corporation Commission.
 
 Crump retrieves the current SCC records (updated weekly) and turns them into CSV and JSON. Alternately, it can improve the quality of the data (formatting dates, ZIP codes, replacing internal status codes with human-readable translations, etc.), atomize the data into millions of individual JSON files, or create [Elasticsearch-compatible bulk API data](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-bulk.html).
