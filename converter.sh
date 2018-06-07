@@ -1,10 +1,15 @@
 #!/bin/bash
 
 # Retrieve the ZIP File.
-#curl -o cisbemon.zip https://www.scc.virginia.gov/SCC-INTERNET/clk/data/CISbemon.CSV.zip
+curl -o cisbemon.zip http://scc.virginia.gov/clk/data/CISbemon.CSV.zip
+
+# Upload it to S3
+TODAY="$(date +'%Y%m%d')"
+aws s3 cp cisbemon.zip s3://virginia-business/$TODAY.zip
+aws s3 cp cisbemon.zip s3://virginia-business/current.zip
 
 # Unzip it to a directory and erase the ZIP file.
-#unzip cisbemon.zip cisbemon
+unzip cisbemon.zip cisbemon
 #rm cisbemon.zip
 
 cd cisbemon || exit
@@ -33,3 +38,14 @@ do
 	echo "$f"
 	csvsql --db sqlite:///businesses.db --insert "$f"
 done
+
+# Convert every file into JSON.
+for f in *.csv
+do
+	csvtojson "$f" > "$f".json
+	jq -cr 'keys[] as $k | "\($k)\n\(.[$k])"' input.json |
+ 		while read -r key ; do
+    	read -r item
+    	printf "%s\n" "$item" > "/tmp/$key.json"
+  	done
+ done
