@@ -1,12 +1,15 @@
 #!/bin/bash
 
+# sudo apt-get install jq curl zip
+# pip install csvkit
+
 # Retrieve the ZIP File.
-curl -o cisbemon.zip http://scc.virginia.gov/clk/data/CISbemon.CSV.zip
+curl --silent --show-error -o cisbemon.zip http://scc.virginia.gov/clk/data/CISbemon.CSV.zip
 
 # Upload it to S3
-TODAY="$(date +'%Y%m%d')"
-aws s3 cp cisbemon.zip s3://virginia-business/$TODAY.zip
-aws s3 cp cisbemon.zip s3://virginia-business/current.zip
+TODAY="$(date +'%Y-%m-%d')"
+aws s3 cp cisbemon.zip s3://data.vabusinesses.org/"$TODAY".zip
+aws s3 cp cisbemon.zip s3://data.vabusinesses.org/current.zip
 
 # Unzip it to a directory and erase the ZIP file.
 unzip cisbemon.zip cisbemon
@@ -18,7 +21,7 @@ cd cisbemon || exit
 echo "Removing invalid characters from all CSV files"
 for f in *.csv
 do
-	cat "$f" |iconv -f ISO-8859-1 -c > "$f"-new
+	iconv -f ISO-8859-1 -c "$f" > "$f"-new
 	rm -f "$f"
 	mv "$f"-new "$f"
 done
@@ -26,7 +29,7 @@ done
 # Make all filenames lowercase, since they determine database table names.
 for i in $(find . -type f -name "*[A-Z]*")
 do
-	mv "$i" "$(echo $i | tr A-Z a-z)"
+	mv "$i" "$(echo "$i" | tr '[:upper:] [:lower:]')"
 done
 
 # Insert each file into SQL.
@@ -42,8 +45,8 @@ done
 # Convert every file into JSON.
 for f in *.csv
 do
-	csvtojson "$f" > "$f".json
-	jq -cr 'keys[] as $k | "\($k)\n\(.[$k])"' input.json |
+	csvjson "$f" > "$f".json
+	jq -cr 'keys[] as $k | "\($k)\n\(.[$k])"' "$f".json |
  		while read -r key ; do
     	read -r item
     	printf "%s\n" "$item" > "/tmp/$key.json"
