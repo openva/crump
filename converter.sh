@@ -54,3 +54,12 @@ do
     	printf "%s\n" "$item" > "/tmp/$key.json"
   	done
  done
+
+# Iterate through each table and break it up into constituent files.
+#for FILE in ${FILES[*]}
+#do
+#	mkdir $FILE
+#	cd $FILE
+#	jq --compact-output '.[]' ../$FILE.csv.json |split -l 1 -a5
+#	cd..
+#done
