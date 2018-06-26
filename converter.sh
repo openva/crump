@@ -15,7 +15,7 @@ fi
 
 # Unzip it to a directory and erase the ZIP file.
 unzip cisbemon.zip cisbemon
-#rm cisbemon.zip
+rm cisbemon.zip
 
 cd cisbemon || exit
 
