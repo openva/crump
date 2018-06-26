@@ -51,11 +51,13 @@ FILES=(llc corp lp officer)
 echo "Converting files to JSON, then atomizing"
 for FILE in ${FILES[*]}
 do
-	csvjson "$f" > "$f".json
-	jq -cr 'keys[] as $k | "\($k)\n\(.[$k])"' "$f".json |
- 		while read -r key ; do
-    	read -r item
-    	printf "%s\n" "$item" > "/tmp/$key.json"
+	echo * "$FILE"
+	csvjson "$FILE".csv > "$FILE".json
+	mkdir "$FILE"
+	jq -cr 'keys[] as $k | "\($k)\n\(.[$k])"' "$FILE".json |
+ 		while read -r KEY ; do
+    	read -r ITEM
+    	printf "%s\n" "$ITEM" > "/$FILE/$KEY.json"
   	done
  done
 
