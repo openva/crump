@@ -37,12 +37,12 @@ done
 # Insert each file into SQL.
 ## TO DO: CHANGE THIS TO MYSQL. USE AN ENV VARIABLE FOR THE DSN.
 ## http://csvkit.readthedocs.io/en/1.0.2/scripts/csvsql.html?highlight=mysql
-echo "Loading each file into the database"
-for f in *.csv
-do
-	echo "$f"
-	csvsql --db sqlite:///businesses.db --insert "$f"
-done
+#echo "Loading each file into the database"
+#for f in *.csv
+#do
+#	echo "$f"
+#	csvsql --db sqlite:///businesses.db --insert "$f"
+#done
 
 # Convert every file into JSON.
 for f in *.csv
