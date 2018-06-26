@@ -9,9 +9,9 @@ if [ "$?" -gt 0 ]; then
 fi
 
 # Upload it to S3
-TODAY="$(date +'%Y-%m-%d')"
-aws s3 cp cisbemon.zip s3://data.vabusinesses.org/"$TODAY".zip
-aws s3 cp cisbemon.zip s3://data.vabusinesses.org/current.zip
+#TODAY="$(date +'%Y-%m-%d')"
+#aws s3 cp cisbemon.zip s3://data.vabusinesses.org/"$TODAY".zip
+#aws s3 cp cisbemon.zip s3://data.vabusinesses.org/current.zip
 
 # Unzip it to a directory and erase the ZIP file.
 unzip cisbemon.zip cisbemon
