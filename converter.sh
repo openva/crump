@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# sudo apt-get install jq curl zip
-# pip install csvkit
-
 # Retrieve the ZIP File.
 curl --silent --show-error -o cisbemon.zip http://scc.virginia.gov/clk/data/CISbemon.CSV.zip
 
