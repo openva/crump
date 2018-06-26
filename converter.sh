@@ -3,6 +3,11 @@
 # Retrieve the ZIP File.
 curl --silent --show-error -o cisbemon.zip http://scc.virginia.gov/clk/data/CISbemon.CSV.zip
 
+if [ "$?" -gt 0 ]; then
+	echo "Error: SCC data could not be downloaded"
+	exit 1
+fi
+
 # Upload it to S3
 TODAY="$(date +'%Y-%m-%d')"
 aws s3 cp cisbemon.zip s3://data.vabusinesses.org/"$TODAY".zip
