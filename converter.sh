@@ -44,8 +44,12 @@ done
 #	csvsql --db sqlite:///businesses.db --insert "$f"
 #done
 
+# Define an array of the tables that we're going to break into components.
+FILES=(llc corp lp officer)
+
 # Convert every file into JSON.
-for f in *.csv
+echo "Converting files to JSON, then atomizing"
+for FILE in ${FILES[*]}
 do
 	csvjson "$f" > "$f".json
 	jq -cr 'keys[] as $k | "\($k)\n\(.[$k])"' "$f".json |
