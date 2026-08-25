@@ -1,0 +1,37 @@
+# Merger.csv — mergers between entities.
+
+- source:      EntityID
+  alt_name:    id
+  description: Entity involved in the merger
+  type:        A
+  search:
+    match:     exact
+
+- source:      MergerType
+  alt_name:    merger_type
+  description: Whether this entity survived the merger
+  type:        A
+  transform:
+    S:         survivor
+    N:         non-survivor
+
+- source:      EffDate
+  alt_name:    effective_date
+  description: Effective date of the merger
+  type:        D
+  search:
+    type:      date
+
+- source:      SurvivorID
+  alt_name:    survivor_id
+  description: Entity ID of the surviving entity
+  type:        A
+  search:
+    match:     exact
+
+- source:      ForeignName
+  alt_name:    foreign_name
+  description: >
+    Name of a foreign entity party to the merger that is not qualified in
+    Virginia, and so has no entity ID of its own.
+  type:        A

@@ -1,0 +1,213 @@
+# Corp.csv — stock corporations.
+# Upstream: https://cis.scc.virginia.gov/DataSales/DownloadBEDataSalesFile
+#
+# `source` is the upstream CSV header; `alt_name` is the name Crump emits.
+# The six entity files (corp, llc, lp, gp, bt, psa) share an identical
+# 28-column core; corp adds Stock1.
+
+- source:      EntityID
+  alt_name:    id
+  description: Unique number assigned to the entity
+  type:        A
+  search:
+    match:     exact
+
+- source:      Name
+  alt_name:    name
+  description: Name of the corporation
+  type:        A
+
+- source:      Status
+  alt_name:    status
+  description: Corporation status (upstream pre-expands this)
+  type:        A
+  search:
+    match:     exact
+
+- source:      StatusReason
+  alt_name:    status_reason
+  description: Reason for the current status (upstream pre-expands this)
+  type:        A
+  search:
+    match:     exact
+
+- source:      Status Date
+  alt_name:    status_date
+  description: Date of last status change
+  type:        D
+  search:
+    type:      date
+
+- source:      Duration
+  alt_name:    expiration_date
+  description: Date on which the entity will expire
+  type:        D
+  search:
+    type:      date
+
+- source:      IncorpDate
+  alt_name:    incorporation_date
+  description: Date of incorporation
+  type:        D
+  search:
+    type:      date
+
+- source:      IncorpState
+  alt_name:    state_formed
+  description: State of formation
+  type:        A
+  search:
+    match:     exact
+
+# Derived, not present upstream: true when state_formed is not VA.
+# Replaces the old fixed-width corp-foreign flag.
+- alt_name:    foreign
+  description: Whether the entity was formed outside of Virginia
+  type:        B
+  derived:     foreign_from_state
+  search:
+    type:      boolean
+
+- source:      IndustryCode
+  alt_name:    industry
+  description: Industry code and label (upstream pre-expands this)
+  type:        A
+
+- source:      Street1
+  alt_name:    street_1
+  description: Principal office street
+  group:       address
+  type:        A
+
+- source:      Street2
+  alt_name:    street_2
+  description: Principal office street, second line
+  group:       address
+  type:        A
+
+- source:      City
+  alt_name:    city
+  description: Principal office city
+  group:       address
+  type:        A
+
+- source:      State
+  alt_name:    state
+  description: Principal office state (upstream spells this out in full)
+  group:       address
+  type:        A
+
+- source:      Zip
+  alt_name:    zip
+  description: Principal office ZIP
+  group:       address
+  type:        Z
+  search:
+    match:     exact
+
+# Derived by the geocoder from the `address` group.
+- alt_name:    coordinates
+  description: Latitude and longitude of the principal office address
+  group:       address
+  derived:     geocode
+  search:
+    type:      geo_shape
+
+- source:      PrinOffEffDate
+  alt_name:    address_date
+  description: Effective date of the principal office address
+  type:        D
+  search:
+    type:      date
+
+- source:      RA-Name
+  alt_name:    agent_name
+  description: Registered agent
+  type:        A
+
+- source:      RA-Street1
+  alt_name:    agent_street_1
+  description: Registered agent street
+  group:       ra_address
+  type:        A
+
+- source:      RA-Street2
+  alt_name:    agent_street_2
+  description: Registered agent street, second line
+  group:       ra_address
+  type:        A
+
+- source:      RA-City
+  alt_name:    agent_city
+  description: Registered agent city
+  group:       ra_address
+  type:        A
+
+- source:      RA-State
+  alt_name:    agent_state
+  description: Registered agent state (upstream spells this out in full)
+  group:       ra_address
+  type:        A
+
+- source:      RA-Zip
+  alt_name:    agent_zip
+  description: Registered agent ZIP
+  group:       ra_address
+  type:        Z
+
+# Derived by the geocoder from the `ra_address` group.
+- alt_name:    agent_coordinates
+  description: Latitude and longitude of the registered agent address
+  group:       ra_address
+  derived:     geocode
+  search:
+    type:      geo_shape
+
+- source:      RA-EffDate
+  alt_name:    agent_date
+  description: Effective date of the registered agent
+  type:        D
+  search:
+    type:      date
+
+- source:      RA-Status
+  alt_name:    agent_status
+  description: Registered agent status (upstream pre-expands this)
+  type:        A
+
+- source:      RA-Loc
+  alt_name:    agent_court_locality
+  description: Registered agent court locality
+  type:        A
+
+- source:      StockInd
+  alt_name:    stock_ind
+  description: Stock indicator
+  type:        A
+  transform:
+    S:         stock
+    N:         nonstock
+
+- source:      TotalShares
+  alt_name:    total_shares
+  description: Total shares of stock. Upstream ships this as a float string.
+  type:        N
+  search:
+    type:      long
+
+- source:      MergerInd
+  alt_name:    merged
+  description: Merger indicator
+  type:        A
+
+- source:      AssessInd
+  alt_name:    assessment
+  description: Assessment indicator
+  type:        A
+
+- source:      Stock1
+  alt_name:    stock_class
+  description: >
+    Stock class. The old fixed-width format carried up to 8 class/share pairs;
+    upstream now ships a single class name, with the count in total_shares.
+  type:        A

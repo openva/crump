@@ -1,0 +1,86 @@
+# ReservedName.csv — reserved and registered entity names.
+#
+# Keyed by ResNumber, not EntityID — these are name reservations, which
+# may never become entities.
+#
+# Status is one of the few fields upstream does NOT pre-expand.
+
+- source:      ResNumber
+  alt_name:    id
+  description: Reservation number
+  type:        A
+  search:
+    match:     exact
+
+- source:      Type
+  alt_name:    entity_type
+  description: >
+    Entity type the name is reserved for. Upstream ships an undocumented
+    'X' value (the most common non-empty code) alongside C and L; unknown
+    codes pass through unchanged.
+  type:        A
+  transform:
+    C:         corporate
+    L:         limited partnership
+
+- source:      Status
+  alt_name:    status
+  description: Whether the name is reserved or registered
+  type:        A
+  transform:
+    '60':      registered
+    '61':      reserved
+
+- source:      Name
+  alt_name:    name
+  description: The reserved or registered name
+  type:        A
+
+- source:      ExpireDate
+  alt_name:    expiration_date
+  description: Date the reservation expires
+  type:        D
+  search:
+    type:      date
+
+- source:      Requestor
+  alt_name:    requestor
+  description: Party that requested the reservation
+  type:        A
+
+- source:      Street1
+  alt_name:    street_1
+  description: Requestor street
+  group:       address
+  type:        A
+
+- source:      Street2
+  alt_name:    street_2
+  description: Requestor street, second line
+  group:       address
+  type:        A
+
+- source:      City
+  alt_name:    city
+  description: Requestor city
+  group:       address
+  type:        A
+
+- source:      State
+  alt_name:    state
+  description: Requestor state
+  group:       address
+  type:        A
+
+- source:      Zip
+  alt_name:    zip
+  description: Requestor ZIP
+  group:       address
+  type:        Z
+
+- alt_name:    coordinates
+  description: Latitude and longitude of the requestor address
+  group:       address
+  derived:     geocode
+  search:
+    type:      geo_shape

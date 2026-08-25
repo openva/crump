@@ -1,0 +1,31 @@
+# NameHistory.csv — prior and fictitious entity names.
+#
+# NameStatus is one of the few fields upstream does NOT pre-expand,
+# so the transform block below is still load-bearing.
+
+- source:      EntityID
+  alt_name:    id
+  description: Entity the name belongs to
+  type:        A
+  search:
+    match:     exact
+
+- source:      NameStatus
+  alt_name:    name_status
+  description: Whether this is a fictitious name or a former name
+  type:        A
+  transform:
+    '50':      fictitious name
+    '70':      old name
+
+- source:      NameEffDate
+  alt_name:    effective_date
+  description: Date the name took effect
+  type:        D
+  search:
+    type:      date
+
+- source:      EntityName
+  alt_name:    name
+  description: The name itself
+  type:        A

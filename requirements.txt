@@ -1,3 +1,15 @@
-pyyaml>=3.11
-csvkit>=0.8.0
-zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
+# Crump dependencies.
+#
+# Upper bounds are deliberate: this project sat untouched from 2017 to 2026 and
+# the `>=`-only floors it used before let csvkit and PyYAML both make breaking
+# changes underneath it. Pin majors; bump them on purpose.
+
+PyYAML>=6.0,<7.0
+requests>=2.32,<3.0
+
+# Deliberately NOT used:
+#   csvkit  - we only ever needed DictReader/DictWriter, and csvkit renamed
+#             CSVKitDictReader out from under us and moved to an agate backend
+#             (pulling agate-dbf, agate-excel, agate-sql). The stdlib `csv`
+#             module does everything we need.
+#   zipp    - was a transitive Snyk pin; nothing here imports it.

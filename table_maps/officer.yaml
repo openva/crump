@@ -1,0 +1,33 @@
+# Officer.csv — entity officers and directors.
+
+- source:      EntityID
+  alt_name:    id
+  description: Entity the officer belongs to
+  type:        A
+  search:
+    match:     exact
+
+- source:      OfficerLastName
+  alt_name:    last_name
+  description: Officer last name
+  group:       officer_name
+  type:        A
+
+- source:      OfficerFirstName
+  alt_name:    first_name
+  description: Officer first name
+  group:       officer_name
+  type:        A
+
+- source:      OfficerMiddleName
+  alt_name:    middle_name
+  description: Officer middle name
+  group:       officer_name
+  type:        A
+
+- source:      OfficerTitle
+  alt_name:    title
+  description: Officer title
+  type:        A
+  search:
+    match:     exact

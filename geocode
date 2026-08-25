@@ -1,325 +1,621 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+"""A geocoder for Virginia State Corporation Commission records.
 
-import csvkit
+Reads normalized CSV produced by `crump`, geocodes any address not already in
+the cache, and stores the result in addresses.db so later crump runs can attach
+coordinates without hitting an API.
+
+Virginia addresses go to the VGIN composite locator (run by VDEM, formerly
+VITA); everything else goes to the Census geocoder.
+
+    https://github.com/openva/crump/
+"""
+
+import argparse
+import csv
 import os
-import errno
-import glob
+import sqlite3
 import sys
 import time
-import math
-import sqlite3
-import urllib
-import urllib2
-import json
-import hashlib
-import argparse
-import time
 
-parser = argparse.ArgumentParser(
-    description="A geocoder for for Virginia State Corporation Commission records",
-    epilog="https://github.com/openva/crump/")
-parser.add_argument('-i', '--input', help="the file to parse", metavar="addresses.csv", required=True)
-parser.add_argument('-c', '--columns', help="the range of columns containing addresses", metavar="9-14", required=True)
-parser.add_argument('-v', '--verbose', help="verbose mode", action='store_true')
-parser.add_argument('-s', '--since', help="only geocode records updated since this date (inclusive)", metavar="YYYY-MM-DD")
-args = parser.parse_args()
-input_file = args.input
-verbose = args.verbose
-columns = args.columns
-date_since = args.since
-if date_since:
-    date_since = time.strptime(date_since, "%Y-%m-%d")
+import requests
 
-# Specify the file and the columnar start and end. Realistically, we should be pulling this data out
-# of the YAML table maps, since we specify which collections of fields are address fields. That
-# would obviate the need to specify filenames or column ranges.
-range = columns.split('-')
-file_column_start = range[0]
-file_column_end = range[1]
-#input_file = "output/2_corporate.csv" #9-13
-#input_file = "output/3_lp.csv" #10-14
-#input_file = "output/9_llc.csv" #9-13
+from crumplib import batch as batch_geocoder
+from crumplib.geocache import address_hash
+from crumplib.normalize import abbreviate_state, clean_text
 
-def main():
+csv.field_size_limit(1 << 24)
 
-    # We keep track of how many consecutive errors the API throws, to stop if there are too many.
-    api_error_count = 0
+# The old gismaps.vita.virginia.gov host stopped resolving; Virginia moved GIS
+# to VDEM. The service path is the same but the parameter names changed:
+# Street/State/ZIP are now Address/Region/Postal.
+VGIN_URL = (
+    "https://vginmaps.vdem.virginia.gov/arcgis/rest/services/Geocoding/"
+    "VGIN_Composite_Locator/GeocodeServer/findAddressCandidates"
+)
+CENSUS_URL = "https://geocoding.geo.census.gov/geocoder/locations/address"
 
-   # Make sure that we can connect to the database.
+#: Below this the VGIN match is too loose to trust.
+MINIMUM_SCORE = 80
+
+#: Consecutive API failures before we conclude the service is down.
+MAX_CONSECUTIVE_ERRORS = 10
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS addresses (
+    address_hash TEXT PRIMARY KEY NOT NULL,
+    address_cleaned TEXT,
+    latitude REAL,
+    longitude REAL,
+    date INTEGER,
+    source TEXT
+)
+"""
+
+# Addresses we cannot geocode are recorded so we don't retry them forever.
+FAILURE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS failures (
+    address_hash TEXT PRIMARY KEY NOT NULL,
+    attempted INTEGER,
+    reason TEXT
+)
+"""
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="A geocoder for Virginia State Corporation Commission records",
+        epilog="https://github.com/openva/crump/",
+    )
+    parser.add_argument(
+        "-i", "--input", required=True, metavar="file.csv",
+        help="normalized CSV from crump, e.g. output/corp.csv",
+    )
+    parser.add_argument(
+        "-p", "--prefix", default="", metavar="str",
+        help="column prefix for the address to use, e.g. agent_",
+    )
+    parser.add_argument(
+        "--cache", default="addresses.db", metavar="file",
+        help="geocoded address cache (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="verbose mode",
+    )
+    parser.add_argument(
+        "-l", "--limit", type=int, metavar="n",
+        help="stop after n successful geocodes",
+    )
+    parser.add_argument(
+        "--delay", type=float, default=1.0, metavar="seconds",
+        help="minimum seconds between API calls (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--retry-failures", action="store_true",
+        help="re-attempt addresses that previously failed",
+    )
+    parser.add_argument(
+        "-b", "--batch", action="store_true",
+        help=(
+            "geocode non-Virginia addresses in bulk via the Census batch API "
+            "(much faster; Virginia addresses still go to VGIN one at a time)"
+        ),
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=batch_geocoder.MAX_BATCH_SIZE,
+        metavar="n",
+        help="addresses per batch request (default: %(default)s, max %(default)s)",
+    )
+    parser.add_argument(
+        "--batch-all", action="store_true",
+        help=(
+            "send Virginia addresses through the Census batch API too, rather "
+            "than the more accurate VGIN locator"
+        ),
+    )
+    parser.add_argument(
+        "--allow-directional-conflicts", action="store_true",
+        help=(
+            "keep batch matches whose directional contradicts the input "
+            "(e.g. '1 W Main' matching '1 E Main'); rejected by default"
+        ),
+    )
+    return parser.parse_args(argv)
+
+
+def connect(path):
+    """Open the cache, creating the schema if needed."""
     try:
-        db = sqlite3.connect('addresses.db')
-    except sqlite3.error, e:
-        print "Count not connect to SQLite, with error %s:" % e.args[0]
-        sys.exit(1)
+        db = sqlite3.connect(path)
+    except sqlite3.Error as error:
+        sys.exit("Could not connect to SQLite: %s" % error)
+    db.execute(SCHEMA)
+    db.execute(FAILURE_SCHEMA)
+    db.commit()
+    return db
 
-    # Create a SQLite cursor.
+
+def is_postal_box(street):
+    """Whether a street line is a PO box or a care-of line, not a location."""
+    lowered = street.lower().lstrip()
+    for prefix in ("po box", "p.o. box", "p. o. box", "post office box"):
+        if lowered.startswith(prefix):
+            return True
+    for prefix in ("c/o ", "attn:", "attn ", "care of "):
+        if lowered.startswith(prefix):
+            return True
+    return False
+
+
+def street_for_lookup(street_1, street_2):
+    """Combine the street lines, dropping the ones that aren't locations.
+
+    The old code deleted dict keys and then read them back, relying on a bare
+    `except` to paper over the KeyError; this just filters a list.
+    """
+    usable = [
+        street
+        for street in (clean_text(street_1), clean_text(street_2))
+        if street and not is_postal_box(street)
+    ]
+    return ", ".join(usable)
+
+
+def geocode_virginia(session, street, city, state, zip_code, timeout=30):
+    """Geocode via the VGIN composite locator. Returns a result dict or None."""
+    response = session.get(
+        VGIN_URL,
+        params={
+            "Address": street,
+            "City": city,
+            "Region": state,
+            "Postal": zip_code,
+            "maxLocations": "1",
+            "f": "json",
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    candidates = response.json().get("candidates") or []
+    if not candidates:
+        return None, "no candidates"
+
+    best = candidates[0]
+    if best.get("score", 0) < MINIMUM_SCORE:
+        return None, "score %s below %s" % (best.get("score"), MINIMUM_SCORE)
+
+    # A very short match means we got a ZIP centroid, not a street address.
+    if len(best.get("address", "")) < 6:
+        return None, "ZIP centroid only"
+
+    location = best.get("location") or {}
+    if location.get("x") is None or location.get("y") is None:
+        return None, "no coordinates"
+
+    return {
+        "address": best["address"],
+        "longitude": location["x"],
+        "latitude": location["y"],
+        "source": "VGIN",
+    }, None
+
+
+def geocode_census(session, street, city, state, zip_code, timeout=30):
+    """Geocode via the Census geocoder. Returns a result dict or None."""
+    response = session.get(
+        CENSUS_URL,
+        params={
+            "street": street,
+            "city": city,
+            "state": state,
+            "zip": zip_code,
+            "benchmark": "Public_AR_Current",
+            "format": "json",
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    matches = (
+        response.json().get("result", {}).get("addressMatches") or []
+    )
+    if not matches:
+        return None, "no candidates"
+
+    best = matches[0]
+    coordinates = best.get("coordinates") or {}
+    if coordinates.get("x") is None or coordinates.get("y") is None:
+        return None, "no coordinates"
+
+    return {
+        "address": best.get("matchedAddress", ""),
+        "longitude": coordinates["x"],
+        "latitude": coordinates["y"],
+        # Record which API actually answered. The old code labeled every
+        # non-Virginia result 'VITA', which made the provenance wrong for
+        # every out-of-state row.
+        "source": "Census",
+    }, None
+
+
+def collect_addresses(options, db, fields):
+    """Read the input CSV and return the addresses that still need geocoding.
+
+    Deduplicates by address hash, so an address shared by a thousand entities
+    is geocoded once. Skips anything already cached or previously failed.
+    """
     cursor = db.cursor()
+    pending = {}
+    counts = {"cached": 0, "skipped": 0, "duplicate": 0}
 
-    # See if the addresses table already exists.
-    cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='addresses'")
-    exists = cursor.fetchone()
+    with open(
+        options.input, encoding="utf-8", errors="replace", newline=""
+    ) as handle:
+        reader = csv.DictReader(handle)
+        missing = [
+            name for name in fields.values() if name not in reader.fieldnames
+        ]
+        if missing:
+            sys.exit(
+                f"Error: {options.input} has no column(s): {', '.join(missing)}"
+            )
 
-    # If the addresses table does not exist, try to retrieve it from a remote cache.
-    if exists is None:
+        for row in reader:
+            street_1 = clean_text(row.get(fields["street_1"]))
+            street_2 = clean_text(row.get(fields["street_2"]))
+            city = clean_text(row.get(fields["city"]))
+            state = abbreviate_state(row.get(fields["state"]))
+            zip_code = clean_text(row.get(fields["zip"]))
 
-        from urllib2 import Request, urlopen, HTTPError
-        url = 'https://s3.amazonaws.com/virginia-business/addresses.db'
-        req = Request(url)
+            if not street_1 and not street_2:
+                counts["skipped"] += 1
+                continue
 
+            digest = address_hash(street_1, street_2, city, state, zip_code)
+            if digest in pending:
+                counts["duplicate"] += 1
+                continue
+
+            cursor.execute(
+                "SELECT 1 FROM addresses WHERE address_hash = ?", (digest,)
+            )
+            if cursor.fetchone():
+                counts["cached"] += 1
+                continue
+
+            if not options.retry_failures:
+                cursor.execute(
+                    "SELECT 1 FROM failures WHERE address_hash = ?", (digest,)
+                )
+                if cursor.fetchone():
+                    counts["skipped"] += 1
+                    continue
+
+            street = street_for_lookup(street_1, street_2)
+            if not street:
+                # PO boxes and care-of lines are not locations; the Census
+                # service never matches them, so don't spend a slot on them.
+                _record_failure(db, digest, "no usable street line")
+                counts["skipped"] += 1
+                continue
+
+            pending[digest] = {
+                "id": digest,
+                "street": street,
+                "city": city,
+                "state": state,
+                "zip": zip_code,
+            }
+
+    return pending, counts
+
+
+def run_batches(options, db, pending, session):
+    """Geocode pending addresses via the Census batch API."""
+    counts = {"geocoded": 0, "failed": 0}
+    size = min(options.batch_size, batch_geocoder.MAX_BATCH_SIZE)
+    total_batches = (len(pending) + size - 1) // size
+
+    for number, chunk in enumerate(
+        batch_geocoder.chunked(pending.values(), size), start=1
+    ):
+        print(
+            f"  batch {number}/{total_batches} ({len(chunk)} addresses)",
+            end="",
+            flush=True,
+        )
         try:
-            f = urlopen(req)
+            matches, rejected = batch_geocoder.geocode_batch(
+                chunk,
+                session=session,
+                reject_directional_conflicts=(
+                    not options.allow_directional_conflicts
+                ),
+            )
+        except batch_geocoder.BatchError as error:
+            print(f" -> failed: {error}")
+            continue
 
-        # If the addresses table cannot be retrieved from a remote cache, create it.
-        except HTTPError as e:
+        for digest, result in matches.items():
+            db.execute(
+                "INSERT OR REPLACE INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    digest,
+                    result["address"],
+                    result["latitude"],
+                    result["longitude"],
+                    int(time.time()),
+                    result["source"],
+                ),
+            )
+        for digest, reason in rejected.items():
+            db.execute(
+                "INSERT OR REPLACE INTO failures VALUES (?, ?, ?)",
+                (digest, int(time.time()), reason),
+            )
+        db.commit()
 
-            cursor.execute("CREATE TABLE addresses(address_hash TEXT PRIMARY KEY NOT NULL, "
-                + "address_cleaned TEXT, latitude INTEGER, longitude INTEGER, date INTEGER, source TEXT)")
-            db.commit()
+        counts["geocoded"] += len(matches)
+        counts["failed"] += len(rejected)
+        rate = 100.0 * len(matches) / len(chunk) if chunk else 0.0
+        print(f" -> {len(matches)} matched ({rate:.0f}%)")
 
-        print "Downloading data from " + url
-        local_file = open('addresses.db', 'w')
-        local_file.write(f.read())
-        local_file.close()
+    return counts
 
-    # Start reading from our input file.
-    with open(input_file, 'rb') as csvfile:
 
-        # Iterate through the lines in our input file.
-        csvreader = csvkit.DictReader(csvfile)
-        for record in csvreader:
+def run_batch_mode(options, db, session, fields):
+    """Bulk-geocode via the Census batch API.
 
-            if verbose:
-                print "\n" + record['street_1'] + ", " + record['street_2'] + ", " + record['city'] + ", " \
-                    + record['state'] + ", " + record['zip']
+    Virginia addresses go to VGIN one at a time unless --batch-all, because the
+    state locator is more accurate for Virginia than the national Census data.
+    """
+    print(f"Reading {options.input}")
+    pending, counts = collect_addresses(options, db, fields)
+    print(
+        f"  {len(pending):,} addresses need geocoding "
+        f"({counts['cached']:,} cached, {counts['duplicate']:,} duplicates, "
+        f"{counts['skipped']:,} skipped)"
+    )
 
-            # Skip records without addresses.
-            if record['street_1'] == '' and record['street_2'] == '':
-                if verbose:
-                    print "Skipping record without address"
-                else:
-                    sys.stdout.write('A')
-                    sys.stdout.flush()
-                continue
+    if not pending:
+        db.close()
+        print("Nothing to do.")
+        return 0
 
-            # Optionally skip any old records that don't need to be re-geocoded.
-            if date_since:
-                if record['address_date'] != '':
-                    if time.strptime(record['address_date'], "%Y-%m-%d") < date_since:
-                        if verbose:
-                            print "Skipping old record"
-                        else:
-                            sys.stdout.write('S')
-                            sys.stdout.flush()
-                        continue
-                if time.strptime(record['status_date'], "%Y-%m-%d") < date_since:
-                    if verbose:
-                        print "Skipping old record"
-                    else:
-                        sys.stdout.write('S')
-                        sys.stdout.flush()
-                    continue
-                
+    virginia = {}
+    if not options.batch_all:
+        virginia = {
+            digest: row
+            for digest, row in pending.items()
+            if row["state"] == "VA"
+        }
+        for digest in virginia:
+            del pending[digest]
 
-            # Note the time at which we started reading this record, to make sure that we don't hit
-            # the API more than per second.
-            start_time = time.time()
+    batch_counts = {"geocoded": 0, "failed": 0}
+    if pending:
+        print(f"Batch geocoding {len(pending):,} addresses via Census")
+        batch_counts = run_batches(options, db, pending, session)
 
-            # Collapse our address columns and save that as a hash, to save in the database. We
-            # convert to a byte str to avoid fatal Unicode-related erors for the odd problematic
-            # character.
-            try:
-                address_hash = hashlib.md5(str(record['street_1']).encode('utf-8') \
-                    + "," + str(record['street_2']).encode('utf-8') + "," \
-                    + str(record['city']).encode('utf-8') + "," \
-                    + str(record['state']).encode('utf-8') + "," \
-                    + str(record['zip']).encode('utf-8')).hexdigest()
+    # Virginia addresses still go through VGIN, one request at a time.
+    serial_counts = {"geocoded": 0, "failed": 0}
+    if virginia:
+        print(
+            f"Geocoding {len(virginia):,} Virginia addresses via VGIN "
+            f"(one at a time)"
+        )
+        serial_counts = run_serial(options, db, session, virginia)
 
-            # In the very rare instance of a character encoding error, just skip this record.
-            except UnicodeEncodeError as exception:
-                continue
-
-            # If the hashed, combined string is already stored in the database, skip to the next
-            # address.
-            hash_param = (address_hash,)
-            cursor.execute("SELECT 1 FROM addresses WHERE address_hash = ?", hash_param)
-            exists = cursor.fetchone()
-            if exists is not None:
-                if verbose:
-                    print "Address found in local cache"
-                else:
-                    sys.stdout.write('C')
-                    sys.stdout.flush()
-                continue
-
-            # Remove quotation marks from street addresses.
-            record['street_1'] = record['street_1'].replace('"', '')
-            record['street_2'] = record['street_2'].replace('"', '')
-
-            # If either address field starts with "C/O" or "ATTN:" drop it.
-            if record['street_1'][:4].lower() == 'c/o ':
-                del record['street_1']
-            elif record['street_1'][:6].lower() == 'attn: ':
-                del record['street_1']
-            if record['street_2'][:4].lower() == 'c/o ':
-                del record['street_2']
-            elif record['street_2'][:6].lower() == 'attn: ':
-                del record['street_2']
-
-            # If either address 1 or address 2 contains "P[\.?][\s*])O[\.?] BOX" (or its variants),
-            # then drop it.
-            if 'street_1' in record:
-                if record['street_1'][:6].lower() == 'po box':
-                    del record['street_1']
-                elif record['street_1'][:8].lower() == 'p.o. box':
-                    del record['street_1']
-            if 'street_2' in record:
-                if record['street_2'][:6].lower() == 'po box':
-                    del record['street_2']
-                elif record['street_2'][:8].lower() == 'p.o. box':
-                    del record['street_2']
-
-            # If either address 1 or address 2 is blank, drop it.
-            if 'street_1' in 'record' and record['street_1'] == '':
-                del record['street_1']
-            if 'street_2' in 'record' and record['street_2'] == '':
-                del record['street_2']
-
-            # Encode each field as a key/value pair, for our query, Key=[Value], combining address 1
-            # and 2 (if both fields exist) into a single field.
-            url_parameters = {}
-            try:
-                url_parameters['Street'] = record['street_1'] + ", " + record['street_2']
-            except:
-                try:
-                    url_parameters['Street'] = record['street_1']
-                except:
-                    try:
-                        url_parameters['Street'] = record['street_2']
-                    except:
-                        pass
-            url_parameters['City'] = record['city']
-            url_parameters['State'] = record['state']
-            url_parameters['ZIP'] = record['zip']
-            url_parameters['maxLocations'] = '1'
-            url_parameters['f'] = 'json'
-            url_parameters = urllib.urlencode(url_parameters)
-
-            # Assemble the URL.
-            if record['state'] == 'VA':
-                request_url = 'http://gismaps.vita.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer/findAddressCandidates?' \
-                    + url_parameters
-            else:
-                request_url = 'http://geocoding.geo.census.gov/geocoder/locations/address?benchmark=Public_AR_Current&format=json&' \
-                    + url_parameters
-
-            # Fetch that URL.
-            try:
-                response = urllib2.urlopen(request_url)
-            except urllib2.URLError as e:
-                sys.stdout.write('‽')
-                sys.stdout.flush()
-                api_error_count += 1
-                if api_error_count == 10:
-                    print "Too many API errors: halting."
-                    sys.exit()
-                continue
-
-            # Load the returned JSON as an object.
-            address_data = json.load(response)
-
-            # Since this worked, reset the API error count to zero.
-            api_error_count = 0
-
-            # If this is a Virginia record.
-            if record['state'] == 'VA':
-                # If no address candidates were found, then record this as a failure and skip to the
-                # next line.
-                if len(address_data['candidates']) == 0:
-                    if verbose:
-                        print "API returned no address candidates"
-                    else:
-                        sys.stdout.write('✗')
-                        sys.stdout.flush()
-                    continue
-
-                # If the top result score is below 80, then record this as a failure and skip to the
-                # next line.
-                if address_data['candidates'][0]['score'] < 80:
-                    ### Realistically, we need to store in the database that no solid match could be
-                    ### found. Otherwise, we're going to look up this address over and over again.
-                    if verbose:
-                        print "API has insufficient confidence in its result"
-                    else:
-                        sys.stdout.write('✗')
-                        sys.stdout.flush()
-                    continue
-
-                # If the address is just a ZIP (indicating that we're getting the ZIP centroid), then
-                # record this as a failure and skip to the next line.
-                if len(address_data['candidates'][0]['address']) < 6:
-                    if verbose:
-                        print "API only returned a ZIP centroid"
-                    else:
-                        sys.stdout.write('✗')
-                        sys.stdout.flush()
-                    continue
-
-                final = {}
-                final['address'] = address_data['candidates'][0]['address']
-                final['longitude'] = address_data['candidates'][0]['location']['x']
-                final['latitude'] = address_data['candidates'][0]['location']['y']
-                final['time'] = round(time.time())
-
-                # Note the name of the API that we're using to geocode this data.
-                final['source_api'] = 'VITA'
-
-            # If this is an extra-Virginia record.
-            if record['state'] != 'VA':
-
-                # Bring the useful contents up a level.
-                address_data = address_data['result']['addressMatches']
-
-                # If no address candidates were found, then record this as a failure and skip to the
-                # next line.
-                if len(address_data) == 0:
-                    if verbose:
-                        print "Census API returned no address candidates"
-                    else:
-                        sys.stdout.write('✗')
-                        sys.stdout.flush()
-                    continue
-
-                final = {}
-                final['address'] = address_data[0]['matchedAddress']
-                final['longitude'] = address_data[0]['coordinates']['x']
-                final['latitude'] = address_data[0]['coordinates']['y']
-                final['time'] = round(time.time())
-
-                # Note the name of the API that we're using to geocode this data.
-                final['source_api'] = 'VITA'
-
-            # Insert the hashed address, cleaned address, latitude, longitude, timestamp, and source
-            # into the database.
-            cursor.execute("INSERT INTO addresses VALUES(?, ?, ?, ?, ?, ?)", \
-                (address_hash, final['address'], final['latitude'], final['longitude'], \
-                final['time'], final['source_api']))
-            db.commit()
-
-            # Report success to the terminal.
-            if verbose:
-                print "Address geocoded"
-            else:
-                sys.stdout.write('✓')
-                sys.stdout.flush()
-
-            # Pause long enough that 1 second has elapsed for this loop, to avoid hammering the API.
-            if record['state'] != 'VA':
-                if time.time() - start_time < 1:
-                    time.sleep(1 - (time.time() - start_time))
-
-    # Close our database connection.
     db.close()
+    print(
+        f"\n{batch_counts['geocoded'] + serial_counts['geocoded']:,} geocoded, "
+        f"{counts['cached']:,} already cached, "
+        f"{batch_counts['failed'] + serial_counts['failed']:,} failed"
+    )
+    return 0
+
+
+def run_serial(options, db, session, rows):
+    """Geocode addresses one at a time through VGIN."""
+    counts = {"geocoded": 0, "failed": 0}
+    consecutive_errors = 0
+
+    for digest, row in rows.items():
+        started = time.monotonic()
+        try:
+            result, reason = geocode_virginia(
+                session, row["street"], row["city"], row["state"], row["zip"]
+            )
+            consecutive_errors = 0
+        except requests.RequestException as error:
+            consecutive_errors += 1
+            _tick(options, "!", f"API error: {error}")
+            if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                print(
+                    f"\nToo many consecutive API errors "
+                    f"({consecutive_errors}): stopping."
+                )
+                break
+            continue
+
+        if result is None:
+            _record_failure(db, digest, reason)
+            counts["failed"] += 1
+            _tick(options, "x", f"failed: {reason}")
+        else:
+            db.execute(
+                "INSERT OR REPLACE INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    digest,
+                    result["address"],
+                    result["latitude"],
+                    result["longitude"],
+                    int(time.time()),
+                    result["source"],
+                ),
+            )
+            db.commit()
+            counts["geocoded"] += 1
+            _tick(options, "+", f"geocoded: {result['address']}")
+            if options.limit and counts["geocoded"] >= options.limit:
+                break
+
+        elapsed = time.monotonic() - started
+        if elapsed < options.delay:
+            time.sleep(options.delay - elapsed)
+
+    if not options.verbose:
+        sys.stdout.write("\n")
+    return counts
+
+
+def main(argv=None):
+    options = parse_args(argv)
+    db = connect(options.cache)
+    cursor = db.cursor()
+    session = requests.Session()
+
+    fields = {
+        role: options.prefix + role
+        for role in ("street_1", "street_2", "city", "state", "zip")
+    }
+
+    if options.batch:
+        return run_batch_mode(options, db, session, fields)
+
+    consecutive_errors = 0
+    counts = {"cached": 0, "skipped": 0, "geocoded": 0, "failed": 0}
+
+    with open(
+        options.input, encoding="utf-8", errors="replace", newline=""
+    ) as handle:
+        reader = csv.DictReader(handle)
+        missing = [name for name in fields.values() if name not in reader.fieldnames]
+        if missing:
+            sys.exit(
+                "Error: %s has no column(s): %s"
+                % (options.input, ", ".join(missing))
+            )
+
+        for row in reader:
+            street_1 = clean_text(row.get(fields["street_1"]))
+            street_2 = clean_text(row.get(fields["street_2"]))
+            city = clean_text(row.get(fields["city"]))
+            state = abbreviate_state(row.get(fields["state"]))
+            zip_code = clean_text(row.get(fields["zip"]))
+
+            if not street_1 and not street_2:
+                counts["skipped"] += 1
+                _tick(options, "A")
+                continue
+
+            digest = address_hash(street_1, street_2, city, state, zip_code)
+
+            cursor.execute(
+                "SELECT 1 FROM addresses WHERE address_hash = ?", (digest,)
+            )
+            if cursor.fetchone():
+                counts["cached"] += 1
+                _tick(options, "C")
+                continue
+
+            if not options.retry_failures:
+                cursor.execute(
+                    "SELECT 1 FROM failures WHERE address_hash = ?", (digest,)
+                )
+                if cursor.fetchone():
+                    counts["skipped"] += 1
+                    _tick(options, "F")
+                    continue
+
+            street = street_for_lookup(street_1, street_2)
+            if not street:
+                _record_failure(db, digest, "no usable street line")
+                counts["failed"] += 1
+                _tick(options, "x")
+                continue
+
+            started = time.monotonic()
+            geocoder = geocode_virginia if state == "VA" else geocode_census
+
+            try:
+                result, reason = geocoder(
+                    session, street, city, state, zip_code
+                )
+                consecutive_errors = 0
+            except requests.RequestException as error:
+                consecutive_errors += 1
+                _tick(options, "!", "API error: %s" % error)
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    sys.exit(
+                        "\nToo many consecutive API errors (%d): halting."
+                        % consecutive_errors
+                    )
+                continue
+
+            if result is None:
+                # Record the failure so we don't look this address up again on
+                # every future run.
+                _record_failure(db, digest, reason)
+                counts["failed"] += 1
+                _tick(options, "x", "failed: %s" % reason)
+            else:
+                db.execute(
+                    "INSERT OR REPLACE INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        digest,
+                        result["address"],
+                        result["latitude"],
+                        result["longitude"],
+                        int(time.time()),
+                        result["source"],
+                    ),
+                )
+                db.commit()
+                counts["geocoded"] += 1
+                _tick(
+                    options,
+                    "+",
+                    "geocoded: %s (%.5f, %.5f)"
+                    % (result["address"], result["latitude"], result["longitude"]),
+                )
+                if options.limit and counts["geocoded"] >= options.limit:
+                    break
+
+            # Stay under the rate limit, counting time already spent.
+            elapsed = time.monotonic() - started
+            if elapsed < options.delay:
+                time.sleep(options.delay - elapsed)
+
+    db.close()
+    print(
+        "\n%d geocoded, %d already cached, %d skipped, %d failed"
+        % (
+            counts["geocoded"],
+            counts["cached"],
+            counts["skipped"],
+            counts["failed"],
+        )
+    )
+    return 0
+
+
+def _record_failure(db, digest, reason):
+    db.execute(
+        "INSERT OR REPLACE INTO failures VALUES (?, ?, ?)",
+        (digest, int(time.time()), reason),
+    )
+    db.commit()
+
+
+def _tick(options, symbol, message=None):
+    """Emit progress: a line in verbose mode, a single character otherwise."""
+    if options.verbose:
+        if message:
+            print(message)
+    else:
+        sys.stdout.write(symbol)
+        sys.stdout.flush()
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

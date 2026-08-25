@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""Load Crump's normalized records into a SQLite database.
+
+Reads the CSVs that `crump` writes and produces a single queryable database.
+The schema comes from the YAML field maps, so it stays in step with the rest of
+Crump automatically.
+
+The database is a derived artifact: it is not checked into Git, and building it
+is not part of the build. Rebuild it whenever the weekly SCC data lands.
+
+    ./crump -dg                    # download and normalize
+    ./db_load                      # build crump.db
+    ./db_load --upload my-bucket   # and publish it
+
+    https://github.com/openva/crump/
+"""
+
+import argparse
+import os
+import sys
+import time
+
+from crumplib import publish
+from crumplib.database import Loader, available_stems, csv_path_for
+from crumplib.maps import load_maps
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Load Crump's normalized records into SQLite",
+        epilog="https://github.com/openva/crump/",
+    )
+    parser.add_argument(
+        "-i", "--input", default="output", metavar="dir",
+        help="directory of normalized CSVs from crump (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-o", "--output", default="crump.db", metavar="file",
+        help="SQLite database to write (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-f", "--files", nargs="+", metavar="stem",
+        help="only load these tables, e.g. corp llc",
+    )
+    parser.add_argument(
+        "--append", action="store_true",
+        help="add to existing tables instead of replacing them",
+    )
+    parser.add_argument(
+        "--no-indexes", action="store_true",
+        help="skip index creation (faster load, slower queries)",
+    )
+    parser.add_argument(
+        "--no-vacuum", action="store_true",
+        help="skip the final VACUUM (larger file, faster finish)",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=10000, metavar="n",
+        help="rows per insert batch (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--maps", default="table_maps", metavar="dir",
+        help="directory of YAML field maps (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--upload", metavar="bucket",
+        help="upload the finished database to this S3 bucket",
+    )
+    parser.add_argument(
+        "--upload-key", default=None, metavar="key",
+        help="object key for the upload (default: the database filename)",
+    )
+    parser.add_argument(
+        "--upload-dry-run", action="store_true",
+        help="show the upload command without running it",
+    )
+    return parser.parse_args(argv)
+
+
+def human(number):
+    return f"{number:,}"
+
+
+def human_bytes(count):
+    for unit in ("B", "KB", "MB", "GB"):
+        if count < 1024 or unit == "GB":
+            return f"{count:.0f} {unit}" if unit == "B" else f"{count:.1f} {unit}"
+        count /= 1024.0
+    return f"{count:.1f} GB"
+
+
+def main(argv=None):
+    options = parse_args(argv)
+
+    if not os.path.isdir(options.input):
+        sys.exit(
+            f"Error: input directory {options.input!r} not found. "
+            "Run crump first to produce normalized CSVs."
+        )
+
+    maps = load_maps(options.maps)
+    if options.files:
+        unknown = set(options.files) - set(maps)
+        if unknown:
+            sys.exit(f"Error: no such map(s): {', '.join(sorted(unknown))}")
+        maps = {stem: maps[stem] for stem in options.files}
+
+    stems = available_stems(maps, options.input)
+    if not stems:
+        sys.exit(
+            f"Error: no normalized CSVs found in {options.input}/. "
+            "Run crump without --no-csv first."
+        )
+
+    missing = sorted(set(maps) - set(stems))
+    if missing:
+        print(f"No CSV for: {', '.join(missing)} (skipping)")
+
+    loader = Loader(options.output, maps, batch_size=options.batch_size)
+    started = time.monotonic()
+
+    # Replace tables by default: a load should be repeatable and produce the
+    # same database, not silently accumulate duplicate rows.
+    if not options.append:
+        for stem in stems:
+            loader.drop(stem)
+    loader.create_schema(stems)
+
+    print(f"Loading into {options.output}")
+    total = 0
+    for stem in stems:
+        path = csv_path_for(stem, options.input)
+        print(f"  {stem}", end="", flush=True)
+        rows = loader.load_csv(stem, path)
+        total += rows
+        print(f" -> {human(rows)} rows")
+
+    if not options.no_indexes:
+        print("Building indexes", end="", flush=True)
+        loader.create_indexes(stems)
+        print(" done")
+
+    print("Analyzing", end="", flush=True)
+    loader.analyze()
+    print(" done")
+
+    if not options.no_vacuum:
+        print("Vacuuming", end="", flush=True)
+        loader.vacuum()
+        print(" done")
+
+    elapsed = time.monotonic() - started
+    size = os.path.getsize(options.output)
+    print(
+        f"\nLoaded {human(total)} rows into {options.output} "
+        f"({human_bytes(size)}) in {elapsed:.0f}s"
+    )
+
+    counts = loader.row_counts()
+    width = max(len(stem) for stem in counts) if counts else 0
+    for stem, count in counts.items():
+        print(f"  {stem.ljust(width)}  {human(count):>12}")
+
+    loader.close()
+
+    if options.upload:
+        _upload(options)
+
+    return 0
+
+
+def _upload(options):
+    """Upload the database to S3. Separate from the load on purpose -- a failed
+    upload should not mean rebuilding the database.
+    """
+    key = options.upload_key or os.path.basename(options.output)
+    print(f"\nUploading to s3://{options.upload}/{key}")
+    try:
+        output = publish.upload_file(
+            options.output,
+            options.upload,
+            key,
+            dry_run=options.upload_dry_run,
+        )
+    except publish.PublishError as error:
+        # The database is built and on disk; the upload can be retried.
+        print(f"  Warning: {error}")
+        print(f"  The database is still at {options.output}")
+        return
+    for line in output.splitlines()[-2:]:
+        if line.strip():
+            print("  " + line)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

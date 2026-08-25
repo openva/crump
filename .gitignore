@@ -1,6 +1,10 @@
 cisbemon.txt
 output
-addresses.db
+# SQLite databases are derived artifacts, rebuilt from the SCC data.
+# Never committed; published to S3 instead.
+*.db
+*.db-wal
+*.db-shm
 .idea/.name
 .idea/crump.iml
 .idea/encodings.xml
@@ -11,3 +15,11 @@ addresses.db
 .idea/workspace.xml
 
 current.zip
+
+.DS_Store
+
+# Downloaded and extracted SCC data
+data/
+*.pyc
+__pycache__/
+.pytest_cache/

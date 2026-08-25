@@ -1,581 +1,395 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+"""A normalizer for Virginia State Corporation Commission business records.
 
-import yaml
-import csvkit
-import os
-import errno
-import glob
-import json
+The SCC publishes its business entity data as a ZIP of CSVs. Crump reads those,
+cleans up the fixed-width residue they still carry, expands the codes the SCC
+leaves raw, attaches coordinates from a cache of geocoded addresses, and emits
+CSV and JSON.
+
+    https://github.com/openva/crump/
+"""
+
 import argparse
-import zipfile
+import csv
+import os
 import sys
-import hashlib
-import sqlite3
-import re
-import datetime
-import warnings
-import re
-import calendar
-#from functools import lru_cache
 
-parser = argparse.ArgumentParser(
-    description="A parser for Virginia State Corporation Commission records",
-    epilog="https://github.com/openva/crump/")
-parser.add_argument('-i', '--input', default='cisbemon.txt', help="raw SCC data (default: %(default)s)", metavar="file.txt")
-parser.add_argument('-o', '--output', default='output', help="directory for JSON and CSV", metavar="output_dir")
-parser.add_argument('-t', '--transform', help="format properly the date, ZIP, etc. fields", action='store_true')
-parser.add_argument('-d', '--download', help="download the data file, if missing", action='store_true')
-parser.add_argument('-e', '--elasticsearch', help="create Elasticsearch bulk API data", action='store_true')
-parser.add_argument('-m', '--map', help="generate Elasticsearch index map", action='store_true')
-args = parser.parse_args()
-master_file = args.input
-output_dir = args.output
-transform = args.transform
-download = args.download
-elasticsearch = args.elasticsearch
-elasticsearch_map = args.map
+from crumplib import download as downloader
+from crumplib import publish
+from crumplib.atomize import Atomizer, group_related
+from crumplib.geocache import GeocodeCache
+from crumplib.maps import load_maps
+from crumplib.output import CsvWriter, JsonArrayWriter, JsonLinesWriter
+from crumplib.records import RecordNormalizer
 
-# The JSON handler in Python 2.7 has trouble with some dates. Work around this.
-def date_handler(obj):
-    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+# Entity names and addresses can be long; the default field limit is not enough
+# for a 647 MB CSV with quoted free-text columns.
+csv.field_size_limit(1 << 24)
 
-def main():
+#: The six maps that describe entities. Each row is one business entity, and
+#: entity IDs are unique across all six, so they share one atomized namespace.
+ENTITY_MAPS = ("corp", "llc", "lp", "gp", "bt", "psa")
 
-    # Make sure the master file exists
-    if os.path.isfile(master_file) is False:
-        
-        # If it doesn't exist, download it.
-        if download:
-            
-            from urllib2 import Request, urlopen, HTTPError
-            url = 'https://s3.amazonaws.com/virginia-business/current.zip'
-            req = Request(url)
+#: Maps whose rows hang off an entity, and the key each is nested under when
+#: atomizing. ReservedName is excluded: it is keyed by reservation number, not
+#: entity ID, so it has no entity to attach to.
+RELATED_MAPS = {
+    "officer": "officers",
+    "namehistory": "name_history",
+    "amendment": "amendments",
+    "merger": "mergers",
+}
 
-            try:
-                f = urlopen(req)
-                print "Downloading business data from " + url
-                local_file = open('current.zip', 'w')
-                local_file.write(f.read())
-                local_file.close()
 
-            except HTTPError as e:
-                print "HTTP error " + format(e.code) + ": Could not download " + url
-                sys.exit()
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description=(
+            "A normalizer for Virginia State Corporation Commission records"
+        ),
+        epilog="https://github.com/openva/crump/",
+    )
+    parser.add_argument(
+        "-i", "--input", default="data", metavar="dir",
+        help="directory holding the SCC CSVs (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-o", "--output", default="output", metavar="dir",
+        help="directory for JSON and CSV (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-d", "--download", action="store_true",
+        help="download and extract the current data file",
+    )
+    parser.add_argument(
+        "-g", "--geocode", action="store_true",
+        help="attach coordinates from the geocoded address cache",
+    )
+    parser.add_argument(
+        "--cache", default="addresses.db", metavar="file",
+        help="geocoded address cache (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--maps", default="table_maps", metavar="dir",
+        help="directory of YAML field maps (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--json", choices=("array", "lines", "none"), default="lines",
+        help="JSON output format (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--no-csv", action="store_true", help="skip CSV output",
+    )
+    parser.add_argument(
+        "-a", "--atomize", action="store_true",
+        help="write one JSON file per entity, for serving a static API",
+    )
+    parser.add_argument(
+        "--atomize-dir", default=None, metavar="dir",
+        help="where per-entity JSON goes (default: <output>/entity)",
+    )
+    parser.add_argument(
+        "--atomize-indent", type=int, default=None, metavar="n",
+        help="indent per-entity JSON by n spaces (default: compact)",
+    )
+    parser.add_argument(
+        "--no-related", action="store_true",
+        help="when atomizing, omit officers, names, amendments, and mergers",
+    )
+    parser.add_argument(
+        "--publish", metavar="bucket",
+        help="sync atomized JSON to this S3 bucket (implies -a)",
+    )
+    parser.add_argument(
+        "--publish-prefix", default="entity", metavar="path",
+        help="key prefix within the bucket (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--publish-dry-run", action="store_true",
+        help="show what would be uploaded, without uploading",
+    )
+    parser.add_argument(
+        "-l", "--limit", type=int, metavar="n",
+        help="stop after n records per file (for testing)",
+    )
+    parser.add_argument(
+        "-f", "--files", nargs="+", metavar="stem",
+        help="only process these maps, e.g. corp llc",
+    )
+    return parser.parse_args(argv)
 
-            # Uncompress the ZIP file.
-            archive = zipfile.ZipFile("current.zip")
-            archive.extract('cisbemon.txt')
 
+def human(number):
+    """Format a count with thousands separators."""
+    return f"{number:,}"
+
+
+def process(
+    field_map, source_path, output_dir, options, cache,
+    atomizer=None, related=None,
+):
+    """Normalize one CSV file. Returns (records written, normalizer)."""
+    normalizer = RecordNormalizer(field_map, cache if options.geocode else None)
+    names = field_map.output_names
+
+    writers = []
+    if not options.no_csv:
+        writers.append(
+            CsvWriter(os.path.join(output_dir, field_map.stem + ".csv"), names)
+        )
+    if options.json == "array":
+        writers.append(
+            JsonArrayWriter(os.path.join(output_dir, field_map.stem + ".json"))
+        )
+    elif options.json == "lines":
+        writers.append(
+            JsonLinesWriter(
+                os.path.join(output_dir, field_map.stem + ".jsonl")
+            )
+        )
+
+    written = 0
+    try:
+        with open(
+            source_path, encoding="utf-8", errors="replace", newline=""
+        ) as handle:
+            for row in csv.DictReader(handle):
+                # Every data row carries one extra field, a trailing-comma
+                # artifact of the old fixed-width format. DictReader files it
+                # under None; drop it so it never reaches the output.
+                row.pop(None, None)
+                record = normalizer.normalize(row)
+                for writer in writers:
+                    writer.write(record)
+                if atomizer is not None:
+                    atomizer.write(
+                        record.get("id"),
+                        _entity_document(record, field_map.stem, related),
+                    )
+                written += 1
+                if options.limit and written >= options.limit:
+                    break
+    finally:
+        for writer in writers:
+            writer.close()
+
+    return written, normalizer
+
+
+def _entity_document(record, entity_type, related):
+    """Build the per-entity document: the record plus its related records.
+
+    `entity_type` is included so a consumer holding only an ID knows what it
+    has -- the atomized namespace is flat, so the document has to say.
+    """
+    document = dict(record)
+    document["entity_type"] = entity_type
+    if not related:
+        return document
+    entity_id = record.get("id")
+    for key, index in related.items():
+        matches = index.get(entity_id)
+        if matches:
+            document[key] = matches
+    return document
+
+
+def _normalized_rows(handle, normalizer):
+    """Yield normalized records from an open CSV file."""
+    for row in csv.DictReader(handle):
+        row.pop(None, None)
+        yield normalizer.normalize(row)
+
+
+def load_related(maps, options):
+    """Index the related-record files by entity ID, for atomizing.
+
+    Normalized through the same maps as everything else, so an atomized
+    officer looks like an officer in officer.csv.
+    """
+    related = {}
+    for stem, key in RELATED_MAPS.items():
+        field_map = maps.get(stem)
+        if field_map is None:
+            continue
+        source_path = os.path.join(options.input, field_map.csv_name)
+        if not os.path.isfile(source_path):
+            continue
+        normalizer = RecordNormalizer(field_map, None)
+        print(f"  indexing {field_map.csv_name}", end="", flush=True)
+        with open(
+            source_path, encoding="utf-8", errors="replace", newline=""
+        ) as handle:
+            related[key] = group_related(
+                source_path, "id", _normalized_rows(handle, normalizer)
+            )
+        print(f" -> {human(len(related[key]))} entities")
+    return related
+
+
+def main(argv=None):
+    options = parse_args(argv)
+
+    # Publishing is only meaningful with per-entity files to publish.
+    if options.publish:
+        options.atomize = True
+
+    if options.download:
+        print(f"Downloading business data from {downloader.DOWNLOAD_URL}")
+        try:
+            archive = downloader.download(
+                progress=lambda n: _progress(n),
+            )
+            sys.stdout.write("\n")
+            extracted = downloader.extract(archive, options.input)
+        except downloader.DownloadError as error:
+            sys.exit(f"Error: {error}")
+        print(f"Extracted {len(extracted)} CSV files to {options.input}/")
+
+    if not os.path.isdir(options.input):
+        sys.exit(
+            f"Error: input directory {options.input!r} not found. "
+            "Use -d to download the data."
+        )
+
+    maps = load_maps(options.maps)
+    if options.files:
+        unknown = set(options.files) - set(maps)
+        if unknown:
+            sys.exit(f"Error: no such map(s): {', '.join(sorted(unknown))}")
+        maps = {stem: maps[stem] for stem in options.files}
+
+    os.makedirs(options.output, exist_ok=True)
+
+    cache = None
+    if options.geocode:
+        cache = GeocodeCache(options.cache)
+        if cache.available:
+            print(
+                f"Loaded {human(len(cache))} cached addresses "
+                f"from {options.cache}"
+            )
         else:
-            print "Error: cisbemon.txt data file not found"
-            sys.exit()
+            print(
+                f"Warning: no usable address cache at {options.cache}; "
+                "skipping geocoding"
+            )
 
-    # If we're going to be transforming the data, retrieve (if necessary) and connect to our
-    # database of geocoded addresses.
-    if transform:
-    
-        # Connect to the database of geocoded addresses.
-        try:
-            db = sqlite3.connect('addresses.db')
-        except sqlite3.error, e:
-            print "Count not connect to SQLite, with error %s:" % e.args[0]
-            sys.exit(1)
+    # Atomizing needs the related records in hand before the entity pass, so
+    # each entity document can carry its officers, names, amendments, mergers.
+    related = None
+    atomize_root = None
+    if options.atomize:
+        atomize_root = options.atomize_dir or os.path.join(
+            options.output, "entity"
+        )
+        if options.no_related:
+            print(f"Atomizing to {atomize_root}/ (entities only)")
+        else:
+            print("Indexing related records for atomizing")
+            related = load_related(maps, options)
 
-        # Create a SQLite cursor.
-        cursor = db.cursor()
+    total = 0
+    unknown_codes = {}
+    atomizer_stats = {"written": 0, "skipped": 0}
+    for stem in sorted(maps):
+        field_map = maps[stem]
+        source_path = os.path.join(options.input, field_map.csv_name)
+        if not os.path.isfile(source_path):
+            print(f"Skipping {stem} (no {field_map.csv_name})")
+            continue
 
-        # See if the addresses table already exists.
-        cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='addresses'")
-        exists = cursor.fetchone()
+        atomizer = None
+        if options.atomize and stem in ENTITY_MAPS:
+            atomizer = Atomizer(atomize_root, indent=options.atomize_indent)
 
-        # If the addresses table does not exist, try to retrieve it from a remote cache.
-        if exists is None:
-             db.close()
-             from urllib2 import Request, urlopen, HTTPError
-             url = 'https://s3.amazonaws.com/virginia-business/addresses.db'
-             req = Request(url)
+        print(f"Processing {field_map.csv_name}", end="", flush=True)
+        written, normalizer = process(
+            field_map, source_path, options.output, options, cache,
+            atomizer=atomizer, related=related,
+        )
+        if atomizer is not None:
+            atomizer_stats["written"] += atomizer.written
+            atomizer_stats["skipped"] += atomizer.skipped
+            print(
+                f" -> {human(written)} records, "
+                f"{human(atomizer.written)} entity files"
+            )
+        else:
+            print(f" -> {human(written)} records")
+        total += written
+        for key, count in normalizer.unknown_codes.items():
+            unknown_codes[key] = unknown_codes.get(key, 0) + count
 
-             try:
-                 f = urlopen(req)
-                 print "Downloading address data from " + url
-                 local_file = open('addresses.db', 'w')
-                 local_file.write(f.read())
-                 local_file.close()
+    print(f"\nWrote {human(total)} records to {options.output}/")
 
-                 # Now that we have it, reconnect to the database of geocoded addresses.
-                 db = sqlite3.connect('addresses.db')
-                 cursor = db.cursor()
-                        
-             except:
-                 pass
+    if options.atomize:
+        print(
+            f"Wrote {human(atomizer_stats['written'])} per-entity JSON files "
+            f"to {atomize_root}/"
+        )
+        if atomizer_stats["skipped"]:
+            print(
+                f"  skipped {human(atomizer_stats['skipped'])} records "
+                "with unusable entity IDs"
+            )
 
-    # Create the output directory.
+    if cache is not None and cache.available:
+        looked_up = cache.hits + cache.misses
+        if looked_up:
+            print(
+                f"Geocoded {human(cache.hits)} of {human(looked_up)} "
+                f"addresses from cache "
+                f"({100.0 * cache.hits / looked_up:.1f}%)"
+            )
+        cache.close()
+
+    if options.publish:
+        _publish(options, atomize_root)
+
+    # Surface codes the maps don't document, rather than silently passing them
+    # through -- this is how we learn the SCC added a value.
+    if unknown_codes:
+        print("\nUndocumented codes (passed through unchanged):")
+        for (field, code), count in sorted(
+            unknown_codes.items(), key=lambda item: -item[1]
+        ):
+            print(f"  {field} = {code!r} ({human(count)} rows)")
+
+    return 0
+
+
+def _publish(options, atomize_root):
+    """Sync the atomized output to S3."""
+    command = publish.sync_command(
+        atomize_root,
+        options.publish,
+        prefix=options.publish_prefix,
+        dry_run=options.publish_dry_run,
+    )
+    print(f"\nPublishing to s3://{options.publish}/{options.publish_prefix}")
+    print("  " + " ".join(command))
     try:
-        os.makedirs(output_dir)
-    except OSError as exception:
-        if exception.errno != errno.EEXIST:
-            raise
+        output = publish.sync(
+            atomize_root,
+            options.publish,
+            prefix=options.publish_prefix,
+            dry_run=options.publish_dry_run,
+        )
+    except publish.PublishError as error:
+        # A failed upload should not discard a successful parse.
+        print(f"  Warning: {error}")
+        return
+    # sync is chatty; the tail is what matters.
+    lines = [line for line in output.splitlines() if line.strip()]
+    for line in lines[-3:]:
+        print("  " + line)
+    print(f"  {len(lines)} objects processed")
+
+
+def _progress(downloaded):
+    sys.stdout.write(f"\r  {downloaded >> 20:,} MB")
+    sys.stdout.flush()
 
-    field_maps = {}
-
-    for csv_file in glob.glob("table_maps/*.yaml"):
-        stream = open(csv_file, 'r')
-
-        # Import the data from YAML.
-        field_map = yaml.load(stream)
-
-        head, tail = os.path.split(csv_file)
-
-        map_id = tail[0]
-        field_maps[map_id] = {}
-        field_maps[map_id]["map"] = field_map
-        field_maps[map_id]["name"] = tail
-
-    # If an Elasticsearch mapping has been requested via command-line switch.
-    if elasticsearch_map:
-        print "Writing Elasticsearch index maps to " + output_dir + "/elasticsearch_maps/"
-        search_index = dict()
-
-        # Create the directory in which they'll be stored.
-        try:
-            os.makedirs(output_dir + "/elasticsearch_maps/")
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                raise
-
-        # Iterate through every field and build up our index data.
-        for file_number in field_maps:
-
-            search_index[file_number] = dict()
-            search_index[file_number]['properties'] = dict()
-
-            current_map = field_maps[file_number]['map']
-            
-            # Iterate through every field in this mapping file.
-            for map in current_map:
-
-                try:
-                    map['alt_name']
-                except KeyError:
-                    continue
-
-                name = map['alt_name']
-                search_index[file_number]['properties'][name] = dict()
-
-                # If this field contains Elasticsearch instructions, we want to handle those.
-                try:
-                    map['search']
-                except KeyError:
-                    search_index[file_number]['properties'][name]['type'] = 'string'
-                else:
-
-                    try:
-                        map['search']['type']
-                    except KeyError:
-                        search_index[file_number]['properties'][name]['type'] = 'string'
-                    else:
-                        if map['search']['type'] == "geo_shape":
-                            search_index[file_number]['properties']['location'] = {}
-                            search_index[file_number]['properties']['location']['type'] = 'geo_shape'
-                            del search_index[file_number]['properties'][name]
-                        else:
-                            search_index[file_number]['properties'][name]['type'] = map['search']['type']
-
-                    try:
-                        map['search']['match']
-                    except KeyError:
-                        pass
-                    else:
-                        if map['search']['match'] == 'exact':
-                            search_index[file_number]['properties'][name]['index'] = 'not_analyzed'
-
-            file = open(output_dir + "/elasticsearch_maps/" + file_number + ".json", 'w')
-            file.write(json.dumps(search_index[file_number], indent=4))
-            file.close()
-
-    # Include our character replacement table.
-    stream = open("character_map.yaml", 'r')
-    global character_map
-    character_map = yaml.load(stream)
-
-    # Count the number of lines in the master file.
-    last_file = ""
-    current_map = None
-    csv_writer = None
-    json_file = None
-    
-    with open(master_file) as f:
-
-        # If we're transforming data, and thus adding geodata, connect to our address database.
-        if transform:
-            db = sqlite3.connect('addresses.db')
-            cursor = db.cursor()
-        
-        # Iterate through our master file and start converting the data.
-        for current_line in enumerate(f):
-
-            # The file number is the first character on each line.
-            file_number = current_line[1][1]
-
-            if file_number in field_maps:
-
-                # If we've begun a new file.
-                if file_number != last_file:
-
-                    # If we've just finished with file 1, read it into memory to use elsewhere.
-                    if last_file == '1':
-                        table_1 = csvkit.CSVKitDictReader(open(output_dir + "/1_tables.csv", 'rb'))
-                        lookup_table = []
-                        for row in table_1:
-                            lookup_table.append(row)
-
-                    # Terminate the prior JSON file: remove the trailing comma and add a bracket,
-                    # unless this is for Elasticsearch.
-                    if last_file != "":
-                        json_file.seek(-2, os.SEEK_END)
-                        json_file.truncate()
-                        if elasticsearch == False:
-                            json_file.write(']')
-
-                    # This is a new file: retrieve the correct field map and set up the file.
-                    current_map = field_maps[file_number]["map"]
-                    current_name = field_maps[file_number]["name"]
-                    csv_name = current_name.replace(".yaml", ".csv")
-                    json_name = current_name.replace(".yaml", ".json")
-                    last_file = file_number
-                    csv_file = open(output_dir + "/" + csv_name, 'w')
-                    json_file = open(output_dir + "/" + json_name, 'w')
-                    field_names = []
-                    for field in current_map:
-                        # Optionally substitute cleaner field names.
-                        if transform and 'alt_name' in field.keys():
-                            field_names.append(field["alt_name"])
-                        else:
-                            field_names.append(field["name"])
-                    field_tuple = tuple(field for field in field_names)
-
-                    # Start writing the CSV data.
-                    csv_writer = csvkit.DictWriter(csv_file, field_tuple)
-                    csv_writer.writeheader()
-                    print "Creating", csv_name.replace(".csv", "")
-
-                    # Start a new JSON file with an opening bracket, unless this is for
-                    # Elasticsearch data.
-                    if elasticsearch == False:
-                        json_file.write('[')
-
-                # Break the line up into pieces.
-                line = {}
-                for field in current_map:
-
-                    # Skip any fields that lack start data -- those are columns that don't exist in
-                    # the master file, but that are added during the parsing process, and are
-                    # included in the map in order to have them indexed by Elasticsearch.
-                    if 'start' in field:
-                        pass
-                    else:
-                        continue
-                    start = int(field["start"])
-                    length = int(field["length"])    
-                                    
-                    # Optionally substitute cleaner field names.
-                    if transform and 'alt_name' in field.keys():
-                        name = field["alt_name"]
-                    else:
-                        name = field["name"]
-                    end = start + length
-                    if 'table_id' in field:
-                        table_id = field["table_id"]
-                    else:
-                        table_id = None
-                    line[name] = current_line[1][start:end].strip()
-                    if "corp-id" in name:
-                        corp_id = line[name]
-
-                    # If we have elected, via command-line option, to transform field contents.
-                    if transform:
-
-                        # Clean up dates.
-                        if "date" in name:
-
-                            # Format dates properly.
-                            line[name] = line[name][:4] + '-' + line[name][4:-2] + '-' + line[name][-2:]
-                            if line[name] == "0000-00-00":
-                                line[name] = None
-                            elif line[name] == "9999-99-99":
-                                line[name] = None
-                            else:
-                                try:
-                                    line[name] = convert_date(line[name])
-                                except:
-                                    line[name] = None
-
-                        # Format ZIP codes properly.
-                        elif "zip" in name:
-                            if len(line[name]) == 9:
-                                if line[name] == '000000000':
-                                    line[name] = ''
-                                if line[name][-4:] == '0000':
-                                    line[name] = line[name][:-4]
-                                else:
-                                    line[name] = line[name][:-4] + '-' + line[name][-4:]
-
-                        # Indicate whether a corporation is foreign or domestic, using True/False
-                        # values instead of the F/0 values the SCC uses in 2_corporate.
-                        elif name == 'foreign':
-                            if line[name] == '0':
-                                line[name] = False
-                            else:
-                                line[name] = True
-
-                        # Indicate whether a corporation is foreign or domestic, using True/False
-                        # values instead of the M/L values the SCC uses in 3_lp.
-                        elif name == 'domestic':
-                            if line[name] == 'M':
-                                line[name] = False
-                            else:
-                                line[name] = True
-
-                        # The total share count sometimes has a leading zero. Strip it off.
-                        elif name == 'total_shares':
-                            line[name] = int(line[name]) + 0
-
-                            # Share counts of 99,999,999,999 seem to follow the practice of 9s
-                            # indicating a null value.
-                            if line[name] == 99999999999:
-                                line[name] = None
-
-                        # Remove extraneous internal whitespace.
-                        if type(line[name]) is str:
-                            line[name] = re.sub("\s{2,}", " ", line[name])
-
-                        # Replace shorthand values with the full version, from the lookup table.
-                        if table_id != None:
-                            for index, conversion in enumerate(lookup_table):
-                                if int(conversion["table-identifier"]) == table_id:
-                                    if conversion["table-code"] == line[name]:
-                                        line[name] = conversion["table-desc"]
-                                        break
-
-                # If we have geodata to be inserted.
-                if transform:
-                    #if "group" in current_map:
-                    #and we have a group with "address" in its name and it has a member of
-                    #search > type with the value "geo_point":
-                    if file_number == '2' or file_number == '3' or file_number == '9':
-                    
-                        # Collapse our address columns and save that as a hash, to query the
-                        # database for. Convert to a byte str to avoid fatal Unicode-related erors
-                        # for the odd problematic character.
-                        try:
-                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
-                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
-
-                        # In the very rare instance of a character encoding error, fix the error
-                        # and try again.
-                        except UnicodeEncodeError as exception:
-                            for key in line:
-                                if line[key] != None:
-                                    line[key] = replace_non_ascii(line[key])
-                            address_hash = hashlib.md5(line['street_1'] + "," + line['street_2'] \
-                                + "," + line['city'] + "," + line['state'] + "," + line['zip']).hexdigest()
-
-                        else:
-                            # If the hashed, combined string is already stored in the database, then
-                            # we have coordinates for it.
-                            hash_param = (address_hash,)
-                            cursor.execute("SELECT latitude, longitude FROM addresses WHERE address_hash = ?", hash_param)
-                            coordinates = cursor.fetchone()
-                            if coordinates is not None:
-                                # FIX THE BELOW -- we should not be naming "coordinates" manually,
-                                # but instead using the identified field name.
-                                line['coordinates'] = [coordinates[1], coordinates[0]]
-
-                try:
-                    csv_writer.writerow(line)
-                except UnicodeDecodeError as exception:
-                    for key in line:
-                        if line[key] != None:
-                            line[key] = replace_non_ascii(line[key])
-                    csv_writer.writerow(line)
-
-                # If we’re creating Elasticsearch bulk API import files.
-                if elasticsearch:
-                    index = dict()
-                    index['index'] = dict()
-                    index['index']['_index'] = 'business'
-                    index['index']['_type'] = file_number
-                    json.dump(index, json_file)
-                    json_file.write(',\n')
-
-                # Make a few modifications to the data before writing it as JSON. (CSV only has
-                # columns, while of course JSON can have nested data, so we take this opportunity
-                # to nest some data.)
-                if transform:
-                    if 'coordinates' in line:
-                        line['location'] = dict()
-                        line['location']['coordinates'] = line['coordinates']
-                        line['location']['type'] = 'point'
-                        del line['coordinates']
-
-                # Save the JSON data.
-                json.dump(line, json_file, default=date_handler)
-
-                # Add a separating comma between elements.
-                if elasticsearch:
-                   json_file.write('\n')
-                else:
-                   json_file.write(',\n')
-
-    # Now that all files are output, break them into Elasticsearch-sized chunks.
-    if elasticsearch:
-        for json_file in glob.glob(output_dir + "/*.json"):
-            chunk(os.path.basename(json_file))
-
-# Replace invalid non-ASCII characters with the correct character.
-def replace_non_ascii(s):
-    if isinstance(s, str):
-        o = ''
-        for i in s:
-            if ord(i) > 128:
-                key = hex(ord(i))
-                try:
-                    replacement = character_map[key[2:]]
-                except KeyError:
-                    o += ' '
-                else:
-                    o += replacement
-            else:
-                o += i
-    else:
-        o = s
-    return o
-
-# Split a file into smaller chunks.
-def chunk(filename):
-
-    # This must be an even number to avoid separating Elasticsearch metadata from actual data.
-    max_lines = 100000
-
-    # Ensure that the specified filename exists.
-    if os.path.isfile(output_dir + '/' + filename) is False:
-        return False
-
-    print "Breaking " + output_dir + '/' + filename + " into pieces"
-
-    # Count the number of lines in the file.
-    num_lines = sum(1 for line in open(output_dir + '/' + filename))
-
-    # Only bother to break up files with more than 100,000 lines.
-    if num_lines < max_lines:
-        return True
-
-    i = 0
-    j = 1
-    source_file = open(output_dir + '/' + filename)
-    dest_name = os.path.splitext(filename)[0] + '_' + str(j) + '.json'
-    dest_file = open(output_dir + '/' + dest_name, 'w')
-    for line in source_file:
-        dest_file.write(line)
-        i += 1
-        if i == max_lines:
-            j += 1
-            i = 0
-
-            # Wrap up the current file, hacking off the trailing comma and adding a closing bracket.
-            dest_file.seek(-2, os.SEEK_END)
-            dest_file.truncate()
-            dest_file.write(']')
-            dest_file.close()
-
-            # Start a new file.
-            dest_name = os.path.splitext(filename)[0] + '_' + str(j) + '.json'
-            dest_file = open(output_dir + '/' + dest_name, 'w')
-            dest_file.write('[')
-
-    source_file.close()
-
-    # Delete the original JSON file, now that we have it in pieces.
-    os.remove(output_dir + '/' + filename)
-
-# Calculate the checksum digit for a given corporate ID
-def checksum(corp_id):
-
-    if len(corp_id) != 7:
-        return False
-
-    if corp_id[:1].isalpha():
-        corp_id = '8' + corp_id[1:]
-
-    # Rearrange the digits
-    corp_id = corp_id[:1] + corp_id[6:7] + corp_id[1:-1]
-
-    # Add up the odd digits.
-    checksum = int(corp_id[:1]) + int(corp_id[2:3]) + int(corp_id[4:5]) + int(corp_id[6:7])
-
-    # Multiple each even digit by two; if the result is 2 digits, add them to each other.
-    pos = [2, 4, 6]
-    for even in pos:
-        tmp = int(corp_id[even-1:even]) * 2
-        if tmp > 9:
-            tmp = int(tmp[:1]) + int(tmp[:-1])
-        checksum = int(checksum) + tmp
-
-    # Subtract the number from 100 and return the least significant digit.
-    checksum = 100 - checksum
-    checksum = str(checksum)
-    checksum = checksum[1:2]
-
-    return checksum
-
-# Fix invalid dates.
-gregorian= calendar.Calendar()
-
-#@lru_cache(1200)
-def last_day( year, month ):
-    return max(gregorian.itermonthdays(year, month))
-
-date_pat= re.compile(r"(?P<y>\d+)-(?P<m>\d+)-(?P<d>\d+)")
-def convert_date(text):
-    try:
-        dt = datetime.datetime.strptime(text, "%Y-%m-%d").date()
-        return dt
-    except ValueError as e1:
-        match= date_pat.match(text)
-        if not match: 
-            warnings.warn("Unparseable date: {0!r}".format(text))
-            return None # Unparseable date case.
-        y, m, d = map(int, (match.group('y'), match.group('m'), match.group('d')))
-        if y >= 9900:
-            return None # Domain null case.
-        try:
-            dt= datetime.date( y, m, d )
-            return dt
-        except ValueError as e2:
-            pass
-        # We know m and d don't make sense together.
-        # We can coerce m into 1 .. 12 range. Which might be sufficient.
-        m=  1 if m < 1 else m if m <= 12 else 12
-        # m= max(1, min(m, 12))
-        try:
-            dt= datetime.date( y, m, d )
-            return dt
-        except ValueError as e3:
-            pass
-        # Sigh.
-        # Coercing d is tougher because of the days per month issue.
-        d_last= last_day(y, m)
-        d= 1 if d < 1 else d if d <= d_last else d_last
-        # d= max(1, min(d, d_last))
-        try:
-            dt= datetime.date( y, m, d )
-            return dt
-        except ValueError as e4:
-            pass
-        # Any other bright ideas?
-        warnings.warn("Uncoerceable date: {0!r}".format(text))
-        return None # Uncoerceable data case.
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

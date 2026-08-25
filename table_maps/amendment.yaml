@@ -1,0 +1,90 @@
+# Amendment.csv — amendments to entity filings.
+#
+# `source` is the upstream CSV header; `alt_name` is the name Crump emits.
+# The old fixed-width map had a single amendment_type; upstream now ships
+# eight parallel AmenType columns, pre-expanded to readable labels.
+
+- source:      EntityID
+  alt_name:    id
+  description: Entity to which the amendment applies
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenDate
+  alt_name:    amendment_date
+  description: Date of the amendment
+  type:        D
+  search:
+    type:      date
+
+- source:      AmenType1
+  alt_name:    amendment_type_1
+  description: Amendment type (upstream pre-expands this)
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenType2
+  alt_name:    amendment_type_2
+  description: Second amendment type, if any
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenType3
+  alt_name:    amendment_type_3
+  description: Third amendment type, if any
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenType4
+  alt_name:    amendment_type_4
+  description: Fourth amendment type, if any
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenType5
+  alt_name:    amendment_type_5
+  description: Fifth amendment type, if any
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenType6
+  alt_name:    amendment_type_6
+  description: Sixth amendment type, if any
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenType7
+  alt_name:    amendment_type_7
+  description: Seventh amendment type, if any
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      AmenType8
+  alt_name:    amendment_type_8
+  description: Eighth amendment type, if any
+  group:       amendment_type
+  type:        A
+  search:
+    match:     exact
+
+- source:      Stock1
+  alt_name:    stock_class
+  description: >
+    Stock class with share count packed in parentheses, e.g. "Class A(5000)".
+    Unlike Corp.Stock1, this field carries both values.
+  type:        A
