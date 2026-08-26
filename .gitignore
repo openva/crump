@@ -20,6 +20,12 @@ current.zip
 
 # Downloaded and extracted SCC data
 data/
+
+# Python build and cache artifacts
 *.pyc
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/

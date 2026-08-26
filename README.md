@@ -175,14 +175,17 @@ and they would otherwise consume batch capacity.
 ## Development
 
 ```sh
-pip install -r requirements.txt
-pip install pytest ruff
+pip install -e '.[dev]'   # the package plus pytest and ruff
 
-pytest              # tests
-ruff check .        # lint
-ruff format .       # apply formatting
+pytest                  # tests
+ruff check .            # lint
+ruff format .           # apply formatting
 ruff format --check .   # what CI enforces
 ```
+
+Install with `-e` rather than just the dependencies: the tests import
+`crumplib`, so the package has to be on the path. Without it they only work
+when run from the repo root.
 
 CI runs `ruff format --check`, which fails on unformatted code rather than
 fixing it. Run `ruff format .` before pushing.
