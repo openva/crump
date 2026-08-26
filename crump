@@ -18,6 +18,7 @@ from crumplib import download as downloader
 from crumplib import publish
 from crumplib.atomize import Atomizer, group_related
 from crumplib.geocache import GeocodeCache
+from crumplib.jurisdiction import JurisdictionIndex
 from crumplib.maps import load_maps
 from crumplib.output import CsvWriter, JsonArrayWriter, JsonLinesWriter
 from crumplib.records import RecordNormalizer
@@ -67,6 +68,20 @@ def parse_args(argv=None):
     parser.add_argument(
         "--cache", default="addresses.db", metavar="file",
         help="geocoded address cache (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-j", "--jurisdiction", action="store_true",
+        help=(
+            "assign each principal office to the Virginia county or "
+            "independent city containing it (implies -g)"
+        ),
+    )
+    parser.add_argument(
+        "--boundaries", default=None, metavar="file",
+        help=(
+            "jurisdiction boundary file "
+            "(default: boundaries/va_jurisdictions.geojson.gz)"
+        ),
     )
     parser.add_argument(
         "--maps", default="table_maps", metavar="dir",
@@ -125,10 +140,14 @@ def human(number):
 
 def process(
     field_map, source_path, output_dir, options, cache,
-    atomizer=None, related=None,
+    atomizer=None, related=None, jurisdictions=None,
 ):
     """Normalize one CSV file. Returns (records written, normalizer)."""
-    normalizer = RecordNormalizer(field_map, cache if options.geocode else None)
+    normalizer = RecordNormalizer(
+        field_map,
+        cache if options.geocode else None,
+        jurisdictions=jurisdictions,
+    )
     names = field_map.output_names
 
     writers = []
@@ -233,6 +252,10 @@ def main(argv=None):
     if options.publish:
         options.atomize = True
 
+    # Jurisdiction is derived from coordinates, so it needs the geocode cache.
+    if options.jurisdiction:
+        options.geocode = True
+
     if options.download:
         print(f"Downloading business data from {downloader.DOWNLOAD_URL}")
         try:
@@ -288,6 +311,17 @@ def main(argv=None):
             print("Indexing related records for atomizing")
             related = load_related(maps, options)
 
+    jurisdictions = None
+    if options.jurisdiction:
+        try:
+            jurisdictions = JurisdictionIndex(options.boundaries)
+        except (OSError, ValueError) as error:
+            sys.exit(f"Error: could not load jurisdiction boundaries: {error}")
+        print(
+            f"Loaded {len(jurisdictions)} Virginia jurisdictions "
+            f"(counties and independent cities)"
+        )
+
     total = 0
     unknown_codes = {}
     atomizer_stats = {"written": 0, "skipped": 0}
@@ -305,7 +339,7 @@ def main(argv=None):
         print(f"Processing {field_map.csv_name}", end="", flush=True)
         written, normalizer = process(
             field_map, source_path, options.output, options, cache,
-            atomizer=atomizer, related=related,
+            atomizer=atomizer, related=related, jurisdictions=jurisdictions,
         )
         if atomizer is not None:
             atomizer_stats["written"] += atomizer.written

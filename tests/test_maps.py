@@ -51,6 +51,7 @@ class TestMapIntegrity:
                 assert field.get("derived") in (
                     "geocode",
                     "foreign_from_state",
+                    "jurisdiction",
                 ), f"{stem}: {field['alt_name']}"
 
     def test_transform_keys_are_strings(self, maps):

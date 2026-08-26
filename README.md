@@ -94,6 +94,46 @@ Entity IDs are unique across all six entity types, so one flat namespace serves
 every kind of business, and each document carries an `entity_type` field saying
 which it is.
 
+## Jurisdiction (city and county FIPS)
+
+Virginia's 38 independent cities are not part of any county, so a business is in
+either a county or a city, never both. The two can even share a name: Richmond
+city (FIPS 51760) and Richmond County (51159) are sixty miles apart.
+
+This cannot be read off an address. Measured against real data, a mailing
+address of "Charlottesville" is inside Charlottesville city only about 46% of
+the time — the rest are in surrounding Albemarle County. "Richmond" splits
+across Richmond city, Chesterfield County, and Henrico County. And plenty of
+addresses name a place that is not a jurisdiction at all, like Midlothian
+(Chesterfield County) or Mechanicsville (Hanover County). Across a full run,
+42% of businesses sit in a jurisdiction whose name differs from their mailing
+city.
+
+So Crump determines it geometrically, by testing the geocoded coordinates
+against actual boundaries:
+
+```sh
+./crump -dj      # download, geocode, and assign jurisdictions
+```
+
+That adds three columns to each entity: `fips`, `jurisdiction`, and
+`jurisdiction_type` (`county` or `city`). They appear in the CSV, the JSON, the
+per-entity files, and the SQLite database, and `fips` is indexed:
+
+```sql
+SELECT COUNT(*) FROM llc WHERE fips = '51059';   -- Fairfax County
+```
+
+`-j` implies `-g`, since the jurisdiction is derived from the coordinates. That
+also means **geocoding coverage is the ceiling on jurisdiction coverage** — an
+entity with no cached geocode gets no FIPS code. Businesses outside Virginia
+correctly get none either.
+
+Boundaries are the Census Bureau's TIGER data (2023), shipped in
+[`boundaries/`](boundaries/) as a 2.6 MB file so lookups work offline and
+reproducibly. Virginia's boundaries effectively never change, so the vintage is
+pinned deliberately.
+
 ## A SQLite database
 
 `db_load` reads the normalized CSVs and builds a single queryable database:

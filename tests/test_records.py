@@ -160,3 +160,56 @@ class TestTransforms:
         )
         assert record["entity_type"] == "X"
         assert ("entity_type", "X") in normalizer.unknown_codes
+
+
+class TestJurisdiction:
+    """Jurisdiction assignment through the record pipeline."""
+
+    def _normalizer(self, maps, coordinates):
+        """A normalizer whose geocode cache always returns one point."""
+
+        class StubCache:
+            available = True
+
+            def coordinates(self, *args):
+                return coordinates
+
+        from crumplib.jurisdiction import JurisdictionIndex
+
+        return RecordNormalizer(
+            maps["corp"], StubCache(), jurisdictions=JurisdictionIndex()
+        )
+
+    def test_assigns_fips_from_coordinates(self, maps):
+        normalizer = self._normalizer(maps, [-77.4360, 37.5407])
+        record = normalizer.normalize(raw_corp_row())
+        assert record["fips"] == "51760"
+        assert record["jurisdiction"] == "Richmond city"
+        assert record["jurisdiction_type"] == "city"
+
+    def test_county_is_distinguished_from_city(self, maps):
+        normalizer = self._normalizer(maps, [-77.1043, 38.8462])
+        record = normalizer.normalize(raw_corp_row())
+        assert record["jurisdiction_type"] == "county"
+
+    def test_outside_virginia_leaves_fips_null(self, maps):
+        normalizer = self._normalizer(maps, [-100.0, 40.0])
+        record = normalizer.normalize(raw_corp_row())
+        assert record["fips"] is None
+        assert record["jurisdiction"] is None
+
+    def test_no_coordinates_means_no_fips(self, maps):
+        """Geocoding coverage is the ceiling on jurisdiction coverage."""
+        normalizer = self._normalizer(maps, None)
+        record = normalizer.normalize(raw_corp_row())
+        assert record["fips"] is None
+
+    def test_absent_index_leaves_fields_null(self, maps):
+        """Without -j, the columns exist but stay empty."""
+        record = RecordNormalizer(maps["corp"]).normalize(raw_corp_row())
+        assert record["fips"] is None
+        assert "fips" in record
+
+    def test_registered_agent_address_is_not_assigned(self, maps):
+        """Scope is the principal office only; there is no agent_fips column."""
+        assert "agent_fips" not in maps["corp"].output_names

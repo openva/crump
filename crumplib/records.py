@@ -16,11 +16,20 @@ class RecordNormalizer:
     through or being dropped.
     """
 
-    def __init__(self, field_map, cache=None):
+    def __init__(self, field_map, cache=None, jurisdictions=None):
         self.map = field_map
         self.cache = cache
+        self.jurisdictions = jurisdictions
         self.unknown_codes = {}
         self._address_groups = field_map.address_groups()
+        # Jurisdiction is only assigned for the principal office, per scope --
+        # the `address` group, not `ra_address`.
+        self._jurisdiction_fields = [
+            field
+            for field in field_map.derived_fields
+            if field.get("derived") == "jurisdiction"
+            and field.get("group") == "address"
+        ]
 
     def normalize(self, row):
         """Convert one raw CSV row into a normalized record."""
@@ -33,11 +42,12 @@ class RecordNormalizer:
             how = field.get("derived")
             if how == "foreign_from_state":
                 record[field["alt_name"]] = self._foreign(record)
-            elif how == "geocode":
-                # Filled in by _geocode() below, which needs the whole record.
+            elif how in ("geocode", "jurisdiction"):
+                # Filled in below, once the whole record is available.
                 record.setdefault(field["alt_name"], None)
 
         self._geocode(record)
+        self._assign_jurisdiction(record)
         return record
 
     def _value(self, field, row):
@@ -94,6 +104,33 @@ class RecordNormalizer:
             )
             if coordinates is not None:
                 record[group["output"]] = coordinates
+
+    def _assign_jurisdiction(self, record):
+        """Attach the county or independent city containing the principal office.
+
+        Needs coordinates, so it runs after geocoding -- an entity without a
+        cached geocode gets no jurisdiction. That makes geocoding coverage the
+        ceiling on jurisdiction coverage.
+        """
+        if self.jurisdictions is None or not self._jurisdiction_fields:
+            return
+
+        group = self._address_groups.get("address")
+        if group is None:
+            return
+
+        area = self.jurisdictions.locate_coordinates(record.get(group["output"]))
+        if area is None:
+            return
+
+        for field in self._jurisdiction_fields:
+            name = field["alt_name"]
+            if name == "fips":
+                record[name] = area.fips
+            elif name == "jurisdiction":
+                record[name] = area.name
+            elif name == "jurisdiction_type":
+                record[name] = area.kind
 
     def report_unknown_codes(self):
         """Undocumented transform codes seen, most frequent first."""

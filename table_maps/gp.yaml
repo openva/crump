@@ -113,6 +113,36 @@
   search:
     type:      geo_shape
 
+- alt_name:    fips
+  description: >
+    FIPS code of the Virginia county or independent city containing the
+    principal office. Determined by point-in-polygon against Census boundaries,
+    not from the address -- a mailing city often differs from the actual
+    jurisdiction.
+  group:       address
+  derived:     jurisdiction
+  type:        A
+  search:
+    match:     exact
+
+- alt_name:    jurisdiction
+  description: Name of the county or independent city containing the principal office
+  group:       address
+  derived:     jurisdiction
+  type:        A
+  search:
+    match:     exact
+
+- alt_name:    jurisdiction_type
+  description: >
+    Whether the principal office is in a "county" or an independent "city".
+    In Virginia the two are legally distinct and never overlap.
+  group:       address
+  derived:     jurisdiction
+  type:        A
+  search:
+    match:     exact
+
 - source:      PrinOffEffDate
   alt_name:    address_date
   description: Effective date of the principal office address

@@ -59,6 +59,9 @@ INDEXED_COLUMNS = (
     "state_formed",
     "status_date",
     "agent_name",
+    # "every business in Fairfax County" is a primary query for this data.
+    "fips",
+    "jurisdiction",
 )
 
 
