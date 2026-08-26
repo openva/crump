@@ -7,19 +7,18 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.11', '3.12', '3.13']
-
+    # Pinned rather than ubuntu-latest so the runner keeps matching the
+    # production server instead of drifting with GitHub's default.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      # 3.12 is what Ubuntu 24.04 ships, which is what the server runs. Test the
+      # version we deploy on rather than a range we do not use.
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.12'
           cache: pip
 
       - name: Install dependencies
