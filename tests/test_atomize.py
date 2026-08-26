@@ -99,9 +99,7 @@ class TestAtomizer:
         ids = ("00000001", "01000002", "T0000003")
         for entity_id in ids:
             subject.write(entity_id, {})
-        assert {p.name for p in tmp_path.iterdir()} == {
-            i[:SHARD_DEPTH] for i in ids
-        }
+        assert {p.name for p in tmp_path.iterdir()} == {i[:SHARD_DEPTH] for i in ids}
 
     def test_index_lists_every_entity(self, tmp_path):
         subject = Atomizer(str(tmp_path))

@@ -85,10 +85,7 @@ def columns_for(field_map):
 
 def create_table_sql(stem, field_map):
     """The CREATE TABLE statement for one map."""
-    definitions = [
-        f'"{name}" {sql_type}'
-        for name, sql_type in columns_for(field_map)
-    ]
+    definitions = [f'"{name}" {sql_type}' for name, sql_type in columns_for(field_map)]
     body = ",\n    ".join(definitions)
     return f'CREATE TABLE IF NOT EXISTS "{stem}" (\n    {body}\n)'
 
@@ -101,8 +98,7 @@ def index_statements(stem, field_map):
         if column not in names:
             continue
         statements.append(
-            f'CREATE INDEX IF NOT EXISTS "{stem}_{column}" '
-            f'ON "{stem}" ("{column}")'
+            f'CREATE INDEX IF NOT EXISTS "{stem}_{column}" ON "{stem}" ("{column}")'
         )
     # Coordinates are queried as a bounding box, so index them together.
     for field in field_map.fields:
@@ -194,9 +190,7 @@ class Loader:
     def create_schema(self, stems=None):
         """Create the tables, without indexes."""
         for stem in stems or sorted(self.maps):
-            self.connection.execute(
-                create_table_sql(stem, self.maps[stem])
-            )
+            self.connection.execute(create_table_sql(stem, self.maps[stem]))
         self.connection.commit()
 
     def drop(self, stem):
@@ -274,7 +268,7 @@ def csv_path_for(stem, directory):
 def available_stems(maps, directory):
     """Map stems whose normalized CSV exists on disk."""
     return [
-        stem for stem in sorted(maps)
-        if stem in CSV_FILENAMES
-        and os.path.isfile(csv_path_for(stem, directory))
+        stem
+        for stem in sorted(maps)
+        if stem in CSV_FILENAMES and os.path.isfile(csv_path_for(stem, directory))
     ]

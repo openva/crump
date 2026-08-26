@@ -39,11 +39,11 @@ class TestSchema:
 
     def test_map_types_become_sql_types(self, maps):
         names = dict(database.columns_for(maps["corp"]))
-        assert names["name"] == "TEXT"          # A
-        assert names["status_date"] == "TEXT"    # D, ISO 8601
+        assert names["name"] == "TEXT"  # A
+        assert names["status_date"] == "TEXT"  # D, ISO 8601
         assert names["total_shares"] == "INTEGER"  # N
-        assert names["zip"] == "TEXT"            # Z, leading zeros matter
-        assert names["foreign"] == "INTEGER"     # B
+        assert names["zip"] == "TEXT"  # Z, leading zeros matter
+        assert names["foreign"] == "INTEGER"  # B
 
     def test_reserved_words_are_quoted(self, maps):
         """`foreign` is SQL-reserved; an unquoted column name is a syntax error."""
@@ -123,8 +123,7 @@ class TestCoercion:
 class TestRowValues:
     def test_splits_coordinates_into_lat_lon(self, maps):
         row = {
-            name: "" for name, _ in
-            [(f["alt_name"], None) for f in maps["corp"].fields]
+            name: "" for name, _ in [(f["alt_name"], None) for f in maps["corp"].fields]
         }
         row["coordinates"] = "[-77.4, 37.5]"
         values = database.row_values(row, maps["corp"])
@@ -163,10 +162,14 @@ class TestLoader:
 
     def test_loads_rows(self, tmp_path, maps):
         source = tmp_path / "corp.csv"
-        self._write_csv(source, maps["corp"], [
-            {"id": "1", "name": "One", "total_shares": "100"},
-            {"id": "2", "name": "Two", "total_shares": "200"},
-        ])
+        self._write_csv(
+            source,
+            maps["corp"],
+            [
+                {"id": "1", "name": "One", "total_shares": "100"},
+                {"id": "2", "name": "Two", "total_shares": "200"},
+            ],
+        )
         loader = database.Loader(str(tmp_path / "t.db"), maps)
         loader.create_schema(["corp"])
         assert loader.load_csv("corp", str(source)) == 2
@@ -179,10 +182,14 @@ class TestLoader:
     def test_keeps_repeated_ids(self, tmp_path, maps):
         """The SCC's repeated entity rows must all survive the load."""
         source = tmp_path / "corp.csv"
-        self._write_csv(source, maps["corp"], [
-            {"id": "1", "name": "One", "agent_date": "2021-01-01"},
-            {"id": "1", "name": "One", "agent_date": "2023-01-01"},
-        ])
+        self._write_csv(
+            source,
+            maps["corp"],
+            [
+                {"id": "1", "name": "One", "agent_date": "2021-01-01"},
+                {"id": "1", "name": "One", "agent_date": "2023-01-01"},
+            ],
+        )
         loader = database.Loader(str(tmp_path / "t.db"), maps)
         loader.create_schema(["corp"])
         loader.load_csv("corp", str(source))
@@ -201,23 +208,23 @@ class TestLoader:
             loader.drop("corp")
             loader.create_schema(["corp"])
             loader.load_csv("corp", str(source))
-            count = loader.connection.execute(
-                "SELECT COUNT(*) FROM corp"
-            ).fetchone()[0]
+            count = loader.connection.execute("SELECT COUNT(*) FROM corp").fetchone()[0]
             loader.close()
         assert count == 1
 
     def test_reserved_word_column_is_queryable(self, tmp_path, maps):
         source = tmp_path / "corp.csv"
-        self._write_csv(source, maps["corp"], [
-            {"id": "1", "name": "One", "foreign": "true"},
-        ])
+        self._write_csv(
+            source,
+            maps["corp"],
+            [
+                {"id": "1", "name": "One", "foreign": "true"},
+            ],
+        )
         loader = database.Loader(str(tmp_path / "t.db"), maps)
         loader.create_schema(["corp"])
         loader.load_csv("corp", str(source))
-        value = loader.connection.execute(
-            'SELECT "foreign" FROM corp'
-        ).fetchone()[0]
+        value = loader.connection.execute('SELECT "foreign" FROM corp').fetchone()[0]
         assert value == 1
         loader.close()
 

@@ -33,11 +33,22 @@ INPUT_COLUMNS = ("id", "street", "city", "state", "zip")
 
 #: Directional words and their canonical abbreviations.
 _DIRECTIONALS = {
-    "N": "N", "S": "S", "E": "E", "W": "W",
-    "NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W",
-    "NE": "NE", "NW": "NW", "SE": "SE", "SW": "SW",
-    "NORTHEAST": "NE", "NORTHWEST": "NW",
-    "SOUTHEAST": "SE", "SOUTHWEST": "SW",
+    "N": "N",
+    "S": "S",
+    "E": "E",
+    "W": "W",
+    "NORTH": "N",
+    "SOUTH": "S",
+    "EAST": "E",
+    "WEST": "W",
+    "NE": "NE",
+    "NW": "NW",
+    "SE": "SE",
+    "SW": "SW",
+    "NORTHEAST": "NE",
+    "NORTHWEST": "NW",
+    "SOUTHEAST": "SE",
+    "SOUTHWEST": "SW",
 }
 
 
@@ -75,9 +86,15 @@ def write_batch(rows, handle):
     writer = csv.writer(handle)
     count = 0
     for row in rows:
-        writer.writerow([
-            row["id"], row["street"], row["city"], row["state"], row["zip"],
-        ])
+        writer.writerow(
+            [
+                row["id"],
+                row["street"],
+                row["city"],
+                row["state"],
+                row["zip"],
+            ]
+        )
         count += 1
     return count
 
@@ -134,7 +151,10 @@ def parse_response(text, reject_directional_conflicts=True):
 
 
 def geocode_batch(
-    rows, session=None, timeout=600, benchmark="Public_AR_Current",
+    rows,
+    session=None,
+    timeout=600,
+    benchmark="Public_AR_Current",
     reject_directional_conflicts=True,
 ):
     """Geocode up to MAX_BATCH_SIZE addresses in one request.

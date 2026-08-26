@@ -70,7 +70,7 @@ Each input file has a YAML map in [`table_maps/`](table_maps/) describing its fi
 that S3 can serve with no application behind it:
 
 ```sh
-./crump -dga --publish virginia-business
+./crump -dga --publish data.vabusinesses.org
 ```
 
 Each document holds the entity's own fields plus its related records — officers,
@@ -127,7 +127,7 @@ is not part of the build or CI — rebuild it whenever new weekly data lands.
 To publish it:
 
 ```sh
-./db_load --upload virginia-business
+./db_load --upload data.vabusinesses.org
 ```
 
 That is a deliberate, separate step. A failed upload never means rebuilding the
@@ -177,9 +177,15 @@ and they would otherwise consume batch capacity.
 ```sh
 pip install -r requirements.txt
 pip install pytest ruff
-pytest
-ruff check .
+
+pytest              # tests
+ruff check .        # lint
+ruff format .       # apply formatting
+ruff format --check .   # what CI enforces
 ```
+
+CI runs `ruff format --check`, which fails on unformatted code rather than
+fixing it. Run `ruff format .` before pushing.
 
 # License
 Released under [the MIT License](https://github.com/openva/crump/blob/master/LICENSE).

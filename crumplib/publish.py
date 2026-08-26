@@ -33,13 +33,21 @@ def sync_command(
         destination += "/" + prefix.strip("/")
 
     command = [
-        "aws", "s3", "sync", source, destination,
-        "--content-type", "application/json",
+        "aws",
+        "s3",
+        "sync",
+        source,
+        destination,
+        "--content-type",
+        "application/json",
         # A static API is only useful if clients can read it cross-origin.
-        "--cache-control", f"public, max-age={cache_seconds}",
+        "--cache-control",
+        f"public, max-age={cache_seconds}",
         # Only .json files; never publish stray local files.
-        "--exclude", "*",
-        "--include", "*.json",
+        "--exclude",
+        "*",
+        "--include",
+        "*.json",
     ]
     if delete:
         # Removes entities that no longer exist upstream. Off by default: a
@@ -53,14 +61,10 @@ def sync_command(
 def sync(source, bucket, prefix="", **kwargs):
     """Publish a directory of entity JSON to S3. Returns the CLI output."""
     if not aws_available():
-        raise PublishError(
-            "the AWS CLI is not installed; install it or sync manually"
-        )
+        raise PublishError("the AWS CLI is not installed; install it or sync manually")
     command = sync_command(source, bucket, prefix, **kwargs)
     try:
-        result = subprocess.run(
-            command, check=True, capture_output=True, text=True
-        )
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as error:
         raise PublishError(
             f"aws s3 sync failed ({error.returncode}): {error.stderr.strip()}"
@@ -75,7 +79,11 @@ def upload_command(path, bucket, key, content_type=None, dry_run=False):
     millions of small ones `sync_command` handles.
     """
     command = [
-        "aws", "s3", "cp", path, f"s3://{bucket}/{key.lstrip('/')}",
+        "aws",
+        "s3",
+        "cp",
+        path,
+        f"s3://{bucket}/{key.lstrip('/')}",
     ]
     if content_type:
         command += ["--content-type", content_type]
@@ -96,9 +104,7 @@ def upload_file(path, bucket, key, content_type=None, dry_run=False):
         path, bucket, key, content_type=content_type, dry_run=dry_run
     )
     try:
-        result = subprocess.run(
-            command, check=True, capture_output=True, text=True
-        )
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as error:
         raise PublishError(
             f"aws s3 cp failed ({error.returncode}): {error.stderr.strip()}"

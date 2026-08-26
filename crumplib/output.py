@@ -31,9 +31,9 @@ class CsvWriter:
         self._writer.writeheader()
 
     def write(self, record):
-        self._writer.writerow({
-            name: _flatten(record.get(name)) for name in self.field_names
-        })
+        self._writer.writerow(
+            {name: _flatten(record.get(name)) for name in self.field_names}
+        )
 
     def close(self):
         self._handle.close()

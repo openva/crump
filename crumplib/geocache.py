@@ -91,9 +91,7 @@ class GeocodeCache:
             return len(self._hashes)
         if not self.available:
             return 0
-        return self._connection.execute(
-            "SELECT COUNT(*) FROM addresses"
-        ).fetchone()[0]
+        return self._connection.execute("SELECT COUNT(*) FROM addresses").fetchone()[0]
 
     def coordinates(self, street_1, street_2, city, state, zip_code):
         """Return [longitude, latitude] for an address, or None if uncached.

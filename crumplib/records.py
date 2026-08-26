@@ -97,6 +97,4 @@ class RecordNormalizer:
 
     def report_unknown_codes(self):
         """Undocumented transform codes seen, most frequent first."""
-        return sorted(
-            self.unknown_codes.items(), key=lambda item: -item[1]
-        )
+        return sorted(self.unknown_codes.items(), key=lambda item: -item[1])

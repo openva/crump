@@ -35,9 +35,7 @@ def download(destination="current.zip", timeout=600, progress=None):
         response = session.get(DOWNLOAD_URL, stream=True, timeout=timeout)
         response.raise_for_status()
     except requests.RequestException as error:
-        raise DownloadError(
-            f"could not download {DOWNLOAD_URL}: {error}"
-        ) from error
+        raise DownloadError(f"could not download {DOWNLOAD_URL}: {error}") from error
 
     content_type = response.headers.get("Content-Type", "")
     if "zip" not in content_type and "octet-stream" not in content_type:

@@ -56,10 +56,15 @@ class TestWriteBatch:
     def test_writes_five_columns_without_a_header(self):
         buffer = io.StringIO()
         count = batch.write_batch(
-            [{
-                "id": "abc", "street": "1 Main St", "city": "Richmond",
-                "state": "VA", "zip": "23219",
-            }],
+            [
+                {
+                    "id": "abc",
+                    "street": "1 Main St",
+                    "city": "Richmond",
+                    "state": "VA",
+                    "zip": "23219",
+                }
+            ],
             buffer,
         )
         assert count == 1
@@ -68,10 +73,15 @@ class TestWriteBatch:
     def test_quotes_fields_containing_commas(self):
         buffer = io.StringIO()
         batch.write_batch(
-            [{
-                "id": "1", "street": "1 Main St, Ste 2", "city": "Richmond",
-                "state": "VA", "zip": "23219",
-            }],
+            [
+                {
+                    "id": "1",
+                    "street": "1 Main St, Ste 2",
+                    "city": "Richmond",
+                    "state": "VA",
+                    "zip": "23219",
+                }
+            ],
             buffer,
         )
         assert '"1 Main St, Ste 2"' in buffer.getvalue()

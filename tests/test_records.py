@@ -97,49 +97,66 @@ class TestCorpNormalization:
 class TestTransforms:
     def test_namehistory_expands_numeric_codes(self, maps):
         normalizer = RecordNormalizer(maps["namehistory"])
-        record = normalizer.normalize({
-            "EntityID": "\t02610707  ",
-            "NameStatus": "70",
-            "NameEffDate": "1999-01-01",
-            "EntityName": "OLD NAME INC",
-        })
+        record = normalizer.normalize(
+            {
+                "EntityID": "\t02610707  ",
+                "NameStatus": "70",
+                "NameEffDate": "1999-01-01",
+                "EntityName": "OLD NAME INC",
+            }
+        )
         assert record["name_status"] == "old name"
 
     def test_reservedname_expands_status(self, maps):
         normalizer = RecordNormalizer(maps["reservedname"])
-        record = normalizer.normalize({
-            "ResNumber": "\t11023050  ",
-            "Type": "C",
-            "Status": "61",
-            "Name": "Test",
-            "ExpireDate": "2026-01-01",
-            "Requestor": "Someone",
-            "Street1": "", "Street2": "", "City": "", "State": "", "Zip": "",
-        })
+        record = normalizer.normalize(
+            {
+                "ResNumber": "\t11023050  ",
+                "Type": "C",
+                "Status": "61",
+                "Name": "Test",
+                "ExpireDate": "2026-01-01",
+                "Requestor": "Someone",
+                "Street1": "",
+                "Street2": "",
+                "City": "",
+                "State": "",
+                "Zip": "",
+            }
+        )
         assert record["status"] == "reserved"
         assert record["entity_type"] == "corporate"
 
     def test_merger_expands_type(self, maps):
         normalizer = RecordNormalizer(maps["merger"])
-        record = normalizer.normalize({
-            "EntityID": "\t00428862  ",
-            "MergerType": "S",
-            "EffDate": "2000-01-01",
-            "SurvivorID": "",
-            "ForeignName": "",
-        })
+        record = normalizer.normalize(
+            {
+                "EntityID": "\t00428862  ",
+                "MergerType": "S",
+                "EffDate": "2000-01-01",
+                "SurvivorID": "",
+                "ForeignName": "",
+            }
+        )
         assert record["merger_type"] == "survivor"
 
     def test_unknown_code_passes_through_and_is_recorded(self, maps):
         """The undocumented 'X' in ReservedName.Type must survive, not vanish."""
         normalizer = RecordNormalizer(maps["reservedname"])
-        record = normalizer.normalize({
-            "ResNumber": "\t1  ",
-            "Type": "X",
-            "Status": "61",
-            "Name": "Test",
-            "ExpireDate": "", "Requestor": "",
-            "Street1": "", "Street2": "", "City": "", "State": "", "Zip": "",
-        })
+        record = normalizer.normalize(
+            {
+                "ResNumber": "\t1  ",
+                "Type": "X",
+                "Status": "61",
+                "Name": "Test",
+                "ExpireDate": "",
+                "Requestor": "",
+                "Street1": "",
+                "Street2": "",
+                "City": "",
+                "State": "",
+                "Zip": "",
+            }
+        )
         assert record["entity_type"] == "X"
         assert ("entity_type", "X") in normalizer.unknown_codes

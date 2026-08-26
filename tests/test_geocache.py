@@ -37,9 +37,10 @@ class TestAddressKey:
         assert feed_form == cached_form
 
     def test_key_format_is_comma_joined(self):
-        assert geocache.address_key(
-            "1 Main St", "", "Richmond", "Virginia", "23219"
-        ) == "1 MAIN ST,,RICHMOND,VA,23219"
+        assert (
+            geocache.address_key("1 Main St", "", "Richmond", "Virginia", "23219")
+            == "1 MAIN ST,,RICHMOND,VA,23219"
+        )
 
     def test_padding_does_not_change_hash(self):
         assert geocache.address_hash(
@@ -88,9 +89,12 @@ class TestGeocodeCache:
         assert found == [-77.4, 37.5]
 
     def test_miss_returns_none(self, cache):
-        assert geocache.GeocodeCache(cache).coordinates(
-            "999 Nowhere Ln", "", "Richmond", "VA", "23219"
-        ) is None
+        assert (
+            geocache.GeocodeCache(cache).coordinates(
+                "999 Nowhere Ln", "", "Richmond", "VA", "23219"
+            )
+            is None
+        )
 
     def test_counts_hits_and_misses(self, cache):
         subject = geocache.GeocodeCache(cache)

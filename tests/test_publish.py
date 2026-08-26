@@ -11,16 +11,20 @@ from crumplib import publish
 
 class TestSyncCommand:
     def test_builds_a_sync_to_the_bucket_root(self):
-        command = publish.sync_command("out/entity", "virginia-business")
+        command = publish.sync_command("out/entity", "data.vabusinesses.org")
         assert command[:5] == [
-            "aws", "s3", "sync", "out/entity", "s3://virginia-business",
+            "aws",
+            "s3",
+            "sync",
+            "out/entity",
+            "s3://data.vabusinesses.org",
         ]
 
     def test_prefix_becomes_a_key_path(self):
         command = publish.sync_command(
-            "out/entity", "virginia-business", prefix="entity"
+            "out/entity", "data.vabusinesses.org", prefix="entity"
         )
-        assert "s3://virginia-business/entity" in command
+        assert "s3://data.vabusinesses.org/entity" in command
 
     def test_strips_slashes_from_prefix(self):
         command = publish.sync_command("out", "bucket", prefix="/entity/")
@@ -45,14 +49,10 @@ class TestSyncCommand:
         assert "--delete" not in publish.sync_command("out", "bucket")
 
     def test_delete_when_requested(self):
-        assert "--delete" in publish.sync_command(
-            "out", "bucket", delete=True
-        )
+        assert "--delete" in publish.sync_command("out", "bucket", delete=True)
 
     def test_dry_run(self):
-        assert "--dryrun" in publish.sync_command(
-            "out", "bucket", dry_run=True
-        )
+        assert "--dryrun" in publish.sync_command("out", "bucket", dry_run=True)
 
 
 class TestSync:
@@ -65,11 +65,14 @@ class TestSync:
 class TestUploadCommand:
     def test_builds_a_cp_command(self):
         command = publish.upload_command(
-            "crump.db", "virginia-business", "crump.db"
+            "crump.db", "data.vabusinesses.org", "crump.db"
         )
         assert command == [
-            "aws", "s3", "cp", "crump.db",
-            "s3://virginia-business/crump.db",
+            "aws",
+            "s3",
+            "cp",
+            "crump.db",
+            "s3://data.vabusinesses.org/crump.db",
         ]
 
     def test_strips_leading_slash_from_key(self):
@@ -85,9 +88,7 @@ class TestUploadCommand:
         )
 
     def test_dry_run(self):
-        assert "--dryrun" in publish.upload_command(
-            "x.db", "b", "x.db", dry_run=True
-        )
+        assert "--dryrun" in publish.upload_command("x.db", "b", "x.db", dry_run=True)
 
 
 class TestUploadFile:

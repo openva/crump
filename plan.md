@@ -1,0 +1,617 @@
+# Crump Modernization Plan
+
+Tracking checklist for bringing Crump back to life. Last touched substantively in 2017;
+both scripts are Python 2-only and fail at compile time under Python 3.
+
+**How to use this file:** check boxes as work lands. Each phase has a short
+rationale so the *why* survives context loss. Phases are ordered by dependency —
+Phase 0 changes the shape of everything downstream, so it goes first.
+
+---
+
+## Phase 0 — Reckon with the new data source (do this first)
+
+The old fixed-width `cisbemon.txt` pipeline is obsolete. The SCC replaced it with a
+ZIP of CSVs. **This invalidates a large part of the codebase**, so settling it before
+porting avoids porting code we're about to delete.
+
+### Confirmed facts (verified 2026-08-25)
+
+- [x] New source URL: `https://cis.scc.virginia.gov/DataSales/DownloadBEDataSalesFile`
+- [x] Download requires a cookie gate, **no login/account**:
+  1. `GET https://cis.scc.virginia.gov/Cookie/CookieConsent` (establish session)
+  2. `POST https://cis.scc.virginia.gov/Cookie/StoreCookieConsent` with
+     `Content-Length: 0` → sets a `cookiesAccepted` cookie
+  3. `GET .../DataSales/DownloadBEDataSalesFile` → 177 MB `application/zip`
+  - A `POST` without an explicit `Content-Length: 0` returns **HTTP 411**.
+- [x] Old S3 mirrors are **dead — HTTP 403**: `s3.amazonaws.com/virginia-business/current.zip`
+      and `.../addresses.db`, the URLs hardcoded in the 2017 code. **There is no
+      `virginia-business` bucket** (confirmed 2026-08-25) — the real bucket is
+      **`data.vabusinesses.org`**, which is what the old `converter.sh` on the
+      `csv-parser` branch uploaded to. The 403s were a dead bucket name, not a
+      permissions problem. `addresses.db` has since been **recovered from a local
+      copy** (see Phase 4), and `current.zip` is superseded by the new CIS
+      download.
+- [x] Archive contains **11 CSVs, ~1 GB uncompressed**, refreshed regularly
+      (files dated 2 days before inspection):
+
+  | File | Size | Rows (approx) |
+  |---|---|---|
+  | `Corp.csv` | 209 MB | 513,550 |
+  | `LLC.csv` | 647 MB | 1,556,674 |
+  | `Officer.csv` | 70 MB | 1,189,921 |
+  | `NameHistory.csv` | 36 MB | — |
+  | `Amendment.csv` | 18 MB | — |
+  | `ReservedName.csv` | 14 MB | — |
+  | `LP.csv`, `Merger.csv`, `GP.csv`, `BT.csv`, `PSA.csv` | 0.05–5 MB | — |
+
+  Note `GP.csv`, `BT.csv`, `PSA.csv` are **new entity types** with no old equivalent.
+  `Corp`/`LLC`/`LP`/`GP`/`BT`/`PSA` share one common column set (with small
+  additions: `Stock1` on Corp/BT; series columns on LLC).
+
+### Decisions — SETTLED 2026-08-25
+
+**Crump's new role: CSV normalizer / geocoder / data-enhancer.** It no longer parses
+a fixed-width file; it consumes the upstream CSVs and adds value on top — cleaning,
+renaming, geocoding, and emitting CSV/JSON.
+
+- [x] **Rewrite boundary: option (a).** Rewrite `crump` as a CSV
+      normalizer/geocoder/enhancer, **keeping the YAML maps**. Preserves the
+      `snake_case` output names downstream consumers depend on.
+- [x] **Delete our hand-maintained code tables; defer to upstream.**
+      `table_maps/1_tables.yaml` and `table_types.csv` go away, along with the whole
+      `table_id` lookup path — the SCC now ships those values pre-expanded.
+- [x] **Weekly refresh cadence confirmed** as still correct.
+
+#### What that means concretely for `table_maps/*.yaml`
+
+The maps are being **repurposed, not preserved wholesale**. Per-key disposition —
+counts are across all 9 map files:
+
+| Key | Count | Disposition |
+|---|---|---|
+| `start` | 149 | **DELETE** — fixed-width offsets, no meaning for CSV |
+| `length` | 148 | **DELETE** — same |
+| `table_id` | 32 | **DELETE** — upstream pre-expands these |
+| `alt_name` | 151 | **KEEP** — the `snake_case` renaming layer; the main asset |
+| `description` | 151 | **KEEP** — no upstream data dictionary exists (verified) |
+| `type` | 189 | **KEEP** — drives type coercion |
+| `search` | 63 | **KEEP** — Elasticsearch hints (Phase 6) |
+| `group` | 38 | **KEEP** — marks address field clusters for the geocoder |
+| `transform` | 5 | **KEEP** — still needed, see below |
+
+- [x] **Rekey each map entry from `start`/`length` to the upstream CSV column name.**
+      DONE. Every entry is now `source:` (upstream header) + `alt_name:` (emitted
+      name). Dropped the internal-only `name:` key. Verified: **0 occurrences of
+      `start`/`length`/`table_id` remain**.
+- [x] **Rename the map files to match upstream.** DONE — map filenames now match the
+      upstream CSV stems (`corp.yaml` ↔ `Corp.csv`), so lookup is mechanical.
+      Deleted `1_tables.yaml` and `table_types.csv`.
+- [x] **Add maps for the three new entity types** — DONE: `gp.yaml`, `bt.yaml`,
+      `psa.yaml`. Correction to an earlier note: **`BT` does *not* have `Stock1`** —
+      it has the plain 28-column core. Only `Corp` has `Stock1` (29 cols); `LLC` has
+      the 3 series columns (31 cols); `LP`/`GP`/`BT`/`PSA` are 28 cols exactly.
+- [x] **`group: address` is now load-bearing** — DONE in the maps. Two distinct
+      groups per entity file: `group: address` (principal office) and
+      `group: ra_address` (registered agent). `reservedname.yaml` also has one
+      `address` group for the requestor. Each group carries a `derived: geocode`
+      entry naming its output field (`coordinates` / `agent_coordinates`).
+      - [ ] Still to do in code: drive geocoding off `group` and retire the hardcoded
+            `file_number == '2' or '3' or '9'` check at [crump:366](crump#L366) and the
+            manual `line['coordinates']` naming at [crump:391](crump#L391) (the
+            existing `FIX THE BELOW` comment asks for exactly this).
+
+#### `transform:` blocks stay — upstream does NOT expand these
+
+Verified: while `Status`/`StatusReason`/`IndustryCode`/`RA-Status` arrive pre-expanded,
+the fields with `transform:` blocks are **still raw codes** upstream:
+
+- `NameHistory.NameStatus` → `70` (110,522) / `50` (89,478) — map has `50: fictitious
+  name`, `70: old name`
+- `ReservedName.Status` → `61` (91,138) / `60` (971) — map has `60: registered`,
+  `61: reserved`
+- `Merger.MergerType` → `N` (40,334) / `S` (31,123) — map has `N: non-survivor`,
+  `S: survivor`
+
+- [x] Keep the `transform:` expansions — DONE, carried into `namehistory.yaml`,
+      `reservedname.yaml`, `merger.yaml`, plus a new one on `StockInd` (`S`→stock,
+      `N`→nonstock). YAML-quoted the numeric keys (`'50'`, `'70'`, `'60'`, `'61'`) so
+      they load as strings and actually match the CSV values — unquoted they'd parse
+      as ints and silently never match.
+      - [ ] Still to do in code: **apply** them. The old hot loop only honored
+            `table_id`, so these expansions likely never ran.
+- [x] **Handle undocumented codes** — documented in `reservedname.yaml`.
+      `ReservedName.Type` ships `X` (32,565 rows) and empty (56,142), neither in the
+      old `C`/`L` map.
+      - [ ] Still to do in code: pass unknown codes through unchanged, log once per run.
+
+#### Map schema (as built — this is now the contract)
+
+Each map is a list of field entries. `table_maps/<stem>.yaml` ↔ `<Stem>.csv`.
+
+| Key | Meaning |
+|---|---|
+| `source` | Upstream CSV header. **Absent = derived field** (not read from CSV). |
+| `alt_name` | Name Crump emits. Required on every entry. Unique within a file. |
+| `description` | Human documentation. Required — no upstream data dictionary exists. |
+| `type` | `A` text, `N` numeric, `D` date, `Z` ZIP, `B` boolean. Drives coercion. |
+| `group` | Marks field clusters: `address`, `ra_address`, `officer_name`, `amendment_type`. |
+| `transform` | Code→label expansion for the fields upstream leaves raw. |
+| `derived` | How to compute a field with no `source`: `geocode` or `foreign_from_state`. |
+| `search` | Elasticsearch hints (`type`, `match`) — consumed in Phase 6. |
+
+Totals: **11 maps, 208 mapped upstream columns, 19 derived fields.**
+Validated bidirectionally — every upstream column is mapped exactly once, and no map
+references a column that doesn't exist. Worth keeping as a test (see Phase 5).
+
+Three `type` values are new and encode the Phase 0 quirks: `D` (already-ISO dates, so
+*don't* reformat), `Z` (ZIP passthrough/validation, not reformatting), `B` (boolean).
+
+Derived fields, by design rather than accident:
+- `foreign` — `IncorpState != 'VA'`, replacing the old fixed-width `corp-foreign` flag
+- `coordinates` / `agent_coordinates` — geocoder output per address group
+
+#### Download behavior
+
+- [x] Implement the cookie-gate download sequence behind `-d`. DONE in `crumplib/download.py`, including the `Content-Length: 0` requirement and a content-type guard that fails loudly if the gate changes.
+- [ ] With a weekly cadence, cache by `Last-Modified`/`ETag` or the ZIP's internal file
+      dates and skip re-downloading 177 MB when unchanged.
+- [x] **Archiving the source ZIP to S3: not doing it** (decided 2026-08-25).
+      The SCC endpoint only ever serves "current", so weekly history would have to
+      be archived by us — as `converter.sh` on the old `csv-parser` branch used to
+      do, leaving 31 dated ZIPs (2014-05-21 → 2016-09-13) plus a 2018 straggler
+      still sitting in `data.vabusinesses.org`. **Those files are no longer
+      relevant and will not be resumed or extended.** Crump downloads the current
+      file and normalizes it; it does not mirror upstream.
+      Consequence to accept knowingly: there is **no historical archive** of the
+      SCC feed going forward, and no way to reconstruct a past week's data.
+
+### New CSV quirks — legacy of the fixed-width era
+
+These are the "some transformations may still apply" cases. All verified against
+`Corp.csv`:
+
+- [x] **Every field is space-padded to fixed width.** e.g. `INACTIVE  `,
+      `VA        `. **Must `.strip()` every value.** This is the fixed-width format
+      leaking through. The existing internal-whitespace squeeze at
+      [crump:351](crump#L351) is still useful for *interior* runs.
+- [x] **`EntityID` is prefixed with a literal TAB** — `'\t11683582  '`. An Excel
+      "force text" trick. Must strip the tab as well as spaces.
+- [x] **Data rows have one MORE field than the header.** Header has 29 columns,
+      rows have 30 — a trailing comma creates a phantom empty column. `DictReader`
+      will bucket it under `None`. Applies to *every* file in the archive.
+      Must be explicitly discarded.
+- [x] **Dates are already ISO `YYYY-MM-DD`** — the manual slice-and-rejoin at
+      [crump:303](crump#L303) is now actively harmful and should be **deleted**.
+- [x] **`9999-12-31` is the null sentinel** (not the old `9999-99-99` / `0000-00-00`).
+      Nearly all `Duration` values are `9999-12-31`. Map to `None`.
+      The `>= 9900` guard in `convert_date` ([crump:550](crump#L550)) still helps.
+- [x] **`TotalShares` is a float string** — `5000.0`, `0.0`, or empty. The old
+      `int()` cast at [crump:342](crump#L342) raises `ValueError` on all of these.
+      Parse as float→int, treat empty as `None`.
+- [x] **ZIP is mostly `99999-9999`, already hyphenated** — but also `99999`, empty,
+      6-digit, 4-digit, and **Canadian postcodes** (`M9J9B9`). The 9-digit
+      re-hyphenation logic at [crump:315](crump#L315) mostly no longer applies;
+      rewrite as validation/passthrough rather than reformatting.
+- [x] **Encoding is UTF-8**, not the old high-byte-mangled ASCII (verified: decodes
+      clean; contains e.g. `è`). **Confirmed across all 11 files** — every one
+      decodes as clean UTF-8. `character_map.yaml` and `replace_non_ascii()` are
+      therefore obsolete and have been **deleted**.
+- [x] **Line endings are CRLF.** Open with `newline=''` and let `csv` handle it.
+- [x] **`StockInd` is `S`/`N`**, and the old `foreign` (`F`/`0`) and `domestic`
+      (`M`/`L`) flags no longer appear as such — `IncorpState` now carries formation
+      state directly (`VA`, `DE`, `MD`, …). Re-derive the foreign/domestic boolean
+      from `IncorpState != 'VA'` and delete the old branches at
+      [crump:326-338](crump#L326-L338).
+
+---
+
+## Phase 1 — Dependencies
+
+- [x] Pin versions with **upper bounds** in `requirements.txt`; `>=`-only floors are
+      what let the ecosystem drift out from under this project.
+- [x] **Drop `csvkit` entirely; use stdlib `csv`.** DONE. [crump:228](crump#L228) calls
+      `csvkit.CSVKitDictReader`, which no longer exists (csvkit 2.2.0 exposes only
+      `DictReader`/`DictWriter`). We only ever used those two, and csvkit is now
+      built on `agate`, dragging in `agate-dbf`, `agate-excel`, `agate-sql`.
+      Removes 4+ transitive deps and this whole breakage class.
+- [x] **Fix `yaml.load()`** → `yaml.safe_load()`. DONE in `crumplib/maps.py`.
+- [x] **Remove the vestigial `zipp>=3.19.1` Snyk pin** — transitive artifact,
+      nothing imports it.
+
+---
+
+## Phase 2 — Python 3 port — COMPLETE
+
+Rewritten rather than line-by-line ported, since Phase 0 retired the fixed-width
+parser. Logic now lives in a `crumplib/` package; `crump` and `geocode` are thin
+CLIs over it, which is what makes any of it testable.
+
+New layout:
+
+| File | Role |
+|---|---|
+| `crumplib/normalize.py` | Field-level cleaning: padding, dates, ZIPs, numbers, states |
+| `crumplib/geocache.py` | Address hashing + `addresses.db` lookups |
+| `crumplib/maps.py` | YAML map loading; generic address-group discovery |
+| `crumplib/records.py` | Row → normalized record, incl. transforms and geocoding |
+| `crumplib/output.py` | CSV, JSON-array, and JSON-lines writers |
+| `crumplib/download.py` | Cookie-gated SCC download and extraction |
+| `crump` | CLI: normalize the CSVs |
+| `geocode` | CLI: geocode addresses not yet cached |
+
+- [x] **Address-hash byte encoding frozen and verified.** The recipe is
+      `md5((s1 + "," + s2 + "," + city + "," + state + "," + zip).encode("utf-8"))`
+      with uppercase / USPS-abbreviation / ZIP5 normalization. Pinned by
+      `tests/test_geocache.py`, which asserts the known production hash
+      `6628 ELECTRONIC DR,,SPRINGFIELD,VA,22151` →
+      `e85df274dcf6ba70be4a9ecd32c0596d`, **and** that the CSV-feed form of the
+      same address (mixed case, "Virginia", ZIP+4) hashes identically.
+      Measured live: **35.9% of addresses geocode from cache**.
+- [x] `print` statements → functions.
+- [x] `except X, e` → `except X as e`; `sqlite3.error` → `sqlite3.Error`.
+- [x] `urllib2`/`urllib.urlencode` → `requests`, which also handles the cookie
+      gate the new download needs.
+- [x] Binary downloads open `"wb"`; the download streams in 1 MB chunks rather
+      than buffering 177 MB in memory.
+- [x] CSVs open in text mode with `newline=""` and `encoding="utf-8"`.
+- [x] **Replaced the hand-rolled JSON assembly.** No more
+      `seek(-2, os.SEEK_END)` + `truncate()` (illegal on a text-mode file in
+      Python 3). `JsonArrayWriter` writes the separator *before* each record;
+      default output is now JSON Lines, which streams and appends cleanly.
+      Verified the empty-input case still emits valid `[]`.
+- [x] Both scripts compile and run: `python3 -m py_compile crump geocode` passes,
+      and a full 11-file run produces 163,121 records with stable column widths.
+
+## Phase 3 — Logic bugs
+
+These are genuine defects independent of the port — each verified by execution.
+Items 3, 4, 6 and the `zip`/date cases may be **deleted rather than fixed** if
+Phase 0 removes those transformations.
+
+- [x] **1. `checksum()` crashes on carry** — **DELETED.** It was dead code (nothing
+      called it), it was broken two ways (`int` subscripting, and the digit-sum
+      needed `tmp - 9`), and the CSV feed gives us `EntityID` directly, so there is
+      nothing to validate a check digit against. Removed rather than fixed.
+- [x] **2. `last_day()` is accidentally correct** — FIXED. Now
+      `normalize._days_in_month()` using `calendar.monthrange(year, month)[1]`,
+      covered by parametrized leap-year tests.
+- [x] **3. ZIP `'000000000'` mangled to `'-'`** — FIXED in `normalize.parse_zip()`,
+      which returns early for all-zero values. **Also found a related bug while
+      testing**: an already-hyphenated `23219-0000` kept its meaningless `-0000`
+      (the old code only handled the unseparated form). Both cases now trim.
+- [x] **4. Date slicing corrupts malformed input** — FIXED by deletion. The feed
+      already ships ISO dates, so `normalize.parse_date()` validates against a
+      regex instead of reformatting. No bare `except` remains; out-of-range
+      components are coerced deliberately, not swallowed.
+- [x] **5. `if 'street_1' in 'record'`** — FIXED. `geocode.street_for_lookup()`
+      filters a list of usable street lines instead of testing dict membership.
+- [x] **6. `int(line[name]) + 0`** — FIXED. `normalize.parse_number()` parses via
+      `float()` (the feed ships `'5000.0'`), returns `None` for blank and
+      non-numeric, and keeps the all-9s null convention.
+- [x] **7. `del record['street_1']` then read back** — FIXED. `is_postal_box()`
+      classifies PO-box and care-of lines and `street_for_lookup()` filters them,
+      so no key is ever deleted and re-read.
+- [x] **8. Wrong `source_api` provenance** — FIXED. Each geocoder reports its own
+      source (`VGIN` / `Census`). Verified live: new out-of-state rows are labeled
+      `Census`, the Virginia row `VGIN`.
+      - [ ] The 22,731 pre-existing `Census`-sourced rows in the shipped cache were
+            already labeled correctly; no backfill needed. But note any rows the
+            *old* code wrote out-of-state carry the wrong `VITA` label.
+- [x] **9. Linear scan in the hot loop** — [crump:355](crump#L355). ~~Scans
+      `lookup_table` per field per line across millions of lines.~~
+      **Resolved by deletion**: Phase 0 retires the `table_id` lookup entirely, since
+      upstream pre-expands these values. No dict-index needed.
+- [x] **10. `lookup_table` ordering dependency** — [crump:227](crump#L227).
+      **Resolved by deletion** — same as item 9. The new CSVs are separate files with
+      no cross-file ordering dependency, so this class of bug is gone.
+- [x] Note: the `corp-foreign`/`corp-id` overlap at `start: 2` in
+      `2_corporate.yaml` was **intentional**, not a bug — the ID's first character
+      doubled as the foreign flag. **Moot**: the `start` offsets are being deleted, and
+      `foreign` is now derived from `IncorpState != 'VA'`.
+
+---
+
+## Phase 4 — Geocoding
+
+- [x] **Update the VITA endpoint.** DONE. `gismaps.vita.virginia.gov` **no longer
+      resolves** (`NXDOMAIN`) — [geocode:210](geocode#L210). Virginia moved GIS to
+      VDEM. Working replacement:
+      `https://vginmaps.vdem.virginia.gov/arcgis/rest/services/Geocoding/VGIN_Composite_Locator/GeocodeServer`
+- [x] **Rename the query parameters** DONE. — the service contract changed. Verified via
+      service metadata and a live query returning **score 100**:
+      | Old | New |
+      |---|---|
+      | `Street` | `Address` |
+      | `City` | `City` (unchanged) |
+      | `State` | `Region` |
+      | `ZIP` | `Postal` |
+      A single-line `SingleLine` field is also available.
+- [x] **Census geocoder moved to HTTPS.** DONE.
+- [x] **`addresses.db` recovered** (copied in locally, 2026-08-25). No longer need
+      the dead S3 copy. Verified contents:
+      - 85 MB, `PRAGMA integrity_check` → **ok**
+      - **564,848 rows**, all with non-null, non-zero coordinates
+      - Sources: 542,117 VITA + 22,731 Census
+      - Geocoded **2014-10-19 → 2015-03-01**
+      - 521,836 (92%) fall inside the Virginia bounding box; 43,012 out-of-state
+- [x] **Confirmed the hash recipe** from [crump:372](crump#L372) is
+      `md5(street_1 + "," + street_2 + "," + city + "," + state + "," + zip)`,
+      by exactly reproducing a known `address_hash` from the DB.
+- [x] **Apply address normalization to reuse the cache — DONE, and measured at 35.9% on a live run.**
+      A naive lookup against the new CSVs scores **0% hits**. Two format changes in
+      the new feed break the exact-match MD5:
+      1. **Case**: new CSV is mixed-case (`Via Lago Dr`), cache was built from
+         upper-case input (`ELECTRONIC DR`)
+      2. **State**: new CSV spells states out (`Virginia`), cache used the USPS
+         abbreviation (`VA`)
+      3. **ZIP**: cache keys used **ZIP5**; new CSV mostly ships `99999-9999`
+      Normalizing to `upper()` + USPS abbreviation + ZIP5 lifts the hit rate from
+      **0% → 38%** on a Corp.csv sample. Spot-checked 6 recovered rows: street,
+      city, and ZIP all agree and coordinates land correctly. Using ZIP5 beats the
+      full hyphenated ZIP by ~8x (38% vs 4.7%).
+      - [x] Built the full 50-state + DC + territories map
+            (`normalize.STATE_ABBREVIATIONS`)
+      - [ ] Still open: whether to **rehash the cache** to a normalized key rather
+            than normalizing on every lookup. Current approach normalizes at lookup
+            time, which works and needs no migration; rehashing would be faster in
+            steady state. Not urgent.
+      - [x] Preserved raw input as the key — matching on the geocoder-*normalized*
+            `address_cleaned` scored **worse** (33%), so raw input stays the key
+- [x] **Size of the remaining job** — measured across `Corp.csv` + `LLC.csv` + `LP.csv`,
+      counting both principal-office and registered-agent addresses:
+      | Metric | Count |
+      |---|---|
+      | Total address instances | 4,076,195 |
+      | — served from cache | 995,387 (**24.4%**) |
+      | Unique addresses | 1,668,571 |
+      | — unique served from cache | 304,393 (18.2%) |
+      | **Unique still needing geocode** | **1,364,178** |
+      So the cache is worth roughly **300k geocodes / ~1M lookups** — real savings,
+      but it covers well under half the corpus. At the current 1 req/sec throttle
+      ([geocode:317](geocode#L317)), the remaining 1.36M unique addresses is
+      **~16 days of continuous running**.
+- [x] **Census batch endpoint implemented and validated against the live service**
+      (`crumplib/batch.py`, `geocode -b`). Tested on real uncached SCC addresses.
+
+      **Viability: yes, decisively.** Measured:
+      | Batch | Wall clock | Match rate |
+      |---|---|---|
+      | 100 addresses | 0.6 s | 75% (PO boxes included) |
+      | 1,000 addresses | 4.1 s | 82% (PO boxes pre-filtered) |
+
+      Serially at 1 req/sec, that 1,000-address batch would take ~17 minutes.
+      Extrapolating to the 1.36M backlog: **roughly 1.5–2 hours of API time
+      instead of ~16 days.**
+
+      Service contract (from the Census docs, confirmed live):
+      - `POST https://geocoding.geo.census.gov/geocoder/locations/addressbatch`
+      - multipart `addressFile` upload plus `benchmark=Public_AR_Current`
+      - input CSV is **headerless**, exactly `Unique ID, Street address, City, State, ZIP`
+      - **10,000 records per request** is the documented ceiling
+      - the unique ID is echoed back, so we submit the **address hash** and results
+        drop straight into the cache with no re-derivation
+      - US, Puerto Rico, and Island Areas only — so the feed's Canadian addresses
+        can never match and shouldn't be submitted
+
+      - [x] **Pre-filter PO boxes.** 17 of 25 no-matches in the first test were PO
+            boxes, which the service never matches. Reusing `street_for_lookup()`
+            lifted the match rate from 75% → 82% *and* stopped wasting batch slots.
+      - [x] **Guard against wrong-location matches — the real risk.** The service
+            returns `Non_Exact` matches that name a **different street**:
+            `1 W Nationwide Blvd` → `1 E NATIONWIDE BLVD`,
+            `204 W Washington St` → `204 E WASHINGTON ST`. Measured at
+            **10 of 821 matches (1.2%)**. Since these get cached and served as a
+            business's location, `batch.directional_conflict()` rejects them.
+            It distinguishes genuine contradictions from benign normalization
+            (`EAST QUEENS DRIVE` → `E QUEENS DR` is fine; so is a directional
+            *added* to disambiguate). Override with
+            `--allow-directional-conflicts`.
+      - [x] **Handle `Tie`** — an undocumented third status for ambiguous
+            addresses. Recorded as a failure, distinct from `No_Match`.
+      - [x] **Handle the 3-column short row.** Unmatched rows come back with only
+            three fields; indexing past that raises `IndexError`.
+      - [x] **Deduplicate before submitting.** Addresses repeat heavily across
+            entities (585 duplicates in an 8,000-record sample), so batching
+            deduplicates by hash first.
+- [x] **Both geocoders coexist, as intended.** `geocode -b` sends non-Virginia
+      addresses to the Census batch API and keeps Virginia addresses on the VGIN
+      locator one at a time, since the state service is more accurate for Virginia.
+      `--batch-all` overrides. Verified in one run: 560 batched (80% matched) plus
+      2,292 Virginia addresses via VGIN, with correct per-source provenance.
+      - [ ] **Not yet done: the actual 1.36M backfill run.** The machinery is
+            tested; this is just the compute. Worth doing on the weekly job or a
+            one-off, and it wants the VGIN serial path to run overnight.
+- [ ] **Expect cache decay.** The cached geocodes are 11+ years old (2014–15). New
+      construction and re-addressing since then won't be represented, which is part
+      of why the hit rate is 18% on unique addresses. Consider a `date`-based
+      re-geocode policy for the oldest entries.
+- [x] **Schema flaw noted and fixed going forward**: new tables declare
+      `latitude`/`longitude` as `REAL`. The existing `addresses.db` keeps its
+      `INTEGER` declaration — SQLite's dynamic typing means the stored floats are
+      fine, so this needs no migration.
+- [x] **Record geocoding failures** in the DB. DONE — new `failures` table storing
+      the hash, timestamp, and reason. `--retry-failures` re-attempts them. This
+      resolves the old `###` comment asking for exactly this.
+
+---
+
+## Phase 5 — Tooling, packaging, tests
+
+- [x] **Deleted `.travis.yml`; added GitHub Actions.** `.github/workflows/test.yml`
+      runs pytest + ruff (lint and format) on 3.11/3.12/3.13 and smoke-tests both
+      CLIs.
+- [x] **Added `pyproject.toml`** with metadata, pinned deps, a `dev` extra, and
+      pytest/ruff config. Note: the CLIs stay as executable scripts rather than
+      console entry points, so `./crump` keeps working as before.
+- [x] **Moved `argparse` into `parse_args(argv)`**, called from `main(argv)`. No
+      module-level globals remain; the `character_map` global is gone entirely.
+- [x] **Added a test suite** — **84 tests, all passing** (`pytest`):
+      | File | Covers |
+      |---|---|
+      | `tests/test_normalize.py` | padding/tab stripping, dates, ZIPs, numbers, booleans, state abbreviation |
+      | `tests/test_geocache.py` | the address-hash contract, cache hits/misses, missing-file tolerance |
+      | `tests/test_maps.py` | map/CSV coverage, unique output names, no legacy keys, string transform keys |
+      | `tests/test_records.py` | row → record, derived fields, transforms, unknown-code capture |
+      Every Phase 0 quirk has a named test. The suite already earned its keep: it
+      caught the `23219-0000` ZIP bug that manual testing missed.
+- [x] **Added ruff** config and wired both `check` and `format --check` into CI.
+      `ruff check .` passes clean (fixed 12 findings: percent-formatting, a missing
+      `raise ... from`, and an unused loop variable).
+- [x] **Rewrote the README** for the new CLI, the eleven upstream CSVs, the field
+      maps, and the geocoding workflow. Dropped the phantom `-a/--atomize` docs and
+      the dead S3 links.
+- [ ] **Replace the Snyk badge** if that integration is no longer active.
+
+---
+
+## Phase 6 — Elasticsearch (only if there's still an ES target)
+
+The generated mappings won't load into any supported Elasticsearch version.
+
+- [ ] `"type": "string"` → `text`/`keyword` — [crump:170](crump#L170),
+      [crump:176](crump#L176). Removed in ES 5.0 (2016).
+- [ ] `"index": "not_analyzed"` → `keyword` type — [crump:191](crump#L191).
+      Also removed in ES 5.0.
+- [ ] Drop `_type` from bulk metadata — [crump:408](crump#L408). Removed in ES 8.
+- [ ] GeoJSON `'type': 'point'` → `'Point'` (capitalized) —
+      [crump:419](crump#L419).
+- [ ] Reconsider the 100k-line `chunk()` splitting ([crump:459](crump#L459)) —
+      modern bulk helpers stream and batch by payload size, not line count.
+
+---
+
+## Open questions
+
+- [x] **The S3 bucket is `data.vabusinesses.org`** (corrected 2026-08-25).
+      There is no `virginia-business` bucket — that name came from the dead URLs
+      hardcoded in the 2017 code, and my earlier AccessDenied diagnosis was
+      therefore **wrong**: those calls failed because the bucket does not exist,
+      not because of a missing IAM grant.
+      - [ ] **Re-test access against the correct bucket** before the first real
+            publish. The earlier permissions finding should be treated as
+            unverified until then.
+- [ ] Is an 11-year-old geocode good enough to keep, or should cached entries past
+      some age be re-verified? (Affects the 18% hit rate.)
+- [x] **Elasticsearch: on hold.** Phase 6 stays unchecked and unstarted by decision, not oversight.
+- [x] **`GP`, `BT`, and `PSA` are first-class outputs.** Already satisfied by the
+      Phase 0 map work: each has a full map (31 output fields), both address groups,
+      CSV/JSON output, and a per-entity JSON file. Verified in a full run:
+      GP 7,535 · BT 1,942 · PSA 132 entities.
+- [x] **Atomize kept and rebuilt** — it backs a static API in S3. See Phase 7.
+
+---
+
+## Phase 7 — Atomize and publish (static S3 API) — COMPLETE
+
+Per-entity JSON files, served straight from S3 as a static API. Rebuilt rather
+than restored: the 2015 implementation (removed in `c7f6cd7`) wrote a flat
+`output/<file_number>/<corp_id>.json`, which does not survive 2 million files.
+
+- [x] **`crumplib/atomize.py`** — writes one JSON file per entity, sharded.
+- [x] **Single flat namespace is safe.** Verified across the full feed: the six
+      entity types share **zero** overlapping IDs (2,049,921 IDs, 2,049,921
+      unique). So consumers can look up an ID without knowing its entity type.
+      Each document still carries `entity_type` so it is self-describing.
+- [x] **Shard depth 4, chosen from measurement, not taste.** Entity IDs cluster
+      hard by issue era, so a shallow prefix does not spread them:
+      | Depth | Shards | Largest shard |
+      |---|---|---|
+      | 2 | 31 | 869,397 files (40% of all output) |
+      | 3 | 223 | 89,029 files |
+      | **4** | **2,136** | **9,110 files** |
+      Depth 2 was the first implementation; the full-scale run exposed the `11`
+      shard holding 849,148 files, which defeats the point of sharding. The
+      tests now assert against `SHARD_DEPTH` rather than hardcoded paths.
+- [x] **Related records nest into the entity document** — `officers`,
+      `name_history`, `amendments`, `mergers`, normalized through the same maps.
+      Indexed in one pass and held in memory; the related files are small next to
+      the entity files. Measured fan-out: max 154 officers, 722 name-history rows
+      for a single entity.
+      `ReservedName` is deliberately excluded: it is keyed by reservation number,
+      not entity ID, so it has no entity to hang off.
+- [x] **Path safety.** Entity IDs become filesystem paths, so `safe_id()`
+      validates against an allowlist and rejects traversal (`../`, separators,
+      empties). A bad ID is counted and skipped, never fatal — one malformed row
+      must not abort a 2-million-record run.
+- [x] **`crumplib/publish.py`** — `aws s3 sync` wrapper. Shells out on purpose:
+      sync already does parallelism, retries, and skip-unchanged for millions of
+      small objects. Sets `application/json` and a cache header; `--exclude *
+      --include *.json` so stray local files can never reach a public bucket.
+      `--delete` is **off by default** (a partial run plus `--delete` would erase
+      most of the API).
+- [x] **Full-scale run verified**: 4,141,128 records and **2,093,343 per-entity
+      JSON files** (7.8 GB) in **~4 minutes**. 2,136 shards, largest 8,929 files.
+- [x] **34 new tests** (`tests/test_atomize.py`, `tests/test_publish.py`);
+      **122 passing** overall.
+
+### Remaining before the first real publish
+
+- [ ] **Grant the IAM user access to the bucket** — see the open question above.
+      Needs `s3:ListBucket` plus `s3:PutObject` on the `entity/*` prefix.
+- [x] **Public URL shape: bare JSON filenames, sharded paths, documented.**
+      Decided 2026-08-25 — keep `entity/<4-char-shard>/<id>.json` as-is. No
+      CloudFront rewrite for now; the sharding rule is documented in the README.
+- [ ] **Decide on `index.json`.** `Atomizer.write_index()` exists but is not
+      wired into the CLI — a 2-million-entry manifest is ~25 MB, which is fine to
+      generate but questionable to serve. Probably wants to be per-shard instead.
+- [ ] **Set a CORS policy** on the bucket, or browser clients cannot read it.
+      *Deferred by decision (2026-08-25) — not blocking, but the API is
+      unusable from a browser until it is set. One-time bucket config, no code
+      change:* `AllowedMethods: [GET, HEAD]`, `AllowedOrigins: ["*"]`,
+      `AllowedHeaders: ["*"]`.
+- [ ] **Consider `--delete` on the weekly job** so terminated entities disappear,
+      but only after a full-run guard exists — never on a `--limit` run.
+
+---
+
+## Phase 8 — SQLite database (`./db_load`) — COMPLETE
+
+A queryable SQLite build of the normalized records, for analysis and for
+publishing to S3. **Deliberately not part of the build or CI**: the database is a
+derived artifact, rebuilt when new weekly data lands.
+
+- [x] **`crumplib/database.py` + `./db_load` CLI.**
+- [x] **Schema derived from the YAML field maps**, not hand-written — adding a
+      field to a map is the only change needed. Type mapping:
+      `A`/`D`/`Z` → TEXT (dates as ISO 8601, since SQLite has no date type and
+      ISO strings sort correctly), `N` → INTEGER, `B` → INTEGER 0/1.
+- [x] **Coordinates split into `<field>_latitude` / `<field>_longitude` REAL
+      columns** rather than a JSON array, so bounding-box queries work and can
+      use a composite index. Verified: `EXPLAIN QUERY PLAN` shows
+      `SEARCH corp USING INDEX corp_coordinates`.
+- [x] **Reserved-word columns quoted.** `foreign` is SQL-reserved; unquoted it is
+      a syntax error. Covered by a test.
+- [x] **No PRIMARY KEY on entity tables — and this matters.** The first version
+      made `id` a primary key with `INSERT OR REPLACE`, which loaded 17,950 rows
+      from a 20,000-row corp CSV. Investigated rather than accepted: the SCC
+      ships **multiple rows per entity** where registered-agent or merger history
+      differs (1,723 of 17,950 corp entities; the varying fields are
+      `agent_date` and `merged`). The primary key was silently discarding real
+      data. Now `id` is indexed but not unique, `INSERT` is plain, and
+      repeatability comes from dropping tables first. Row counts now match the
+      CSVs exactly.
+- [x] **Indexes built after loading, not during** — markedly faster. Then
+      `ANALYZE` for the query planner and `VACUUM` to compact before upload.
+- [x] **Full-scale verified**: **4,141,128 rows in 38 seconds → 1.2 GB**, row
+      counts matching every source CSV exactly, `PRAGMA integrity_check` ok,
+      indexed queries returning in ~5 ms.
+- [x] **Fixed a bug found only at scale**: the loader inherited the stdlib
+      131,072-byte CSV field limit and died partway through `Officer.csv`.
+      `csv.field_size_limit` is now raised in the module.
+- [x] **S3 upload is a separate, opt-in step** (`--upload bucket`,
+      `--upload-dry-run`). Uses `aws s3 cp` for the single large object, rather
+      than the `sync` used for the millions of atomized files. A failed upload
+      warns and leaves the database on disk — it never means rebuilding.
+- [x] **`*.db` gitignored** (plus `-wal`/`-shm`). Previously only
+      `addresses.db` was, so `crump.db` would have been committed.
+- [x] **CI does not build or upload the database** — it only lints, tests, and
+      checks `--help` on all three CLIs.
+- [x] **34 new tests**; **183 passing** overall.
+
+### Notes for consumers
+
+- Entity IDs are **not unique within a table** (see above). `GROUP BY id` or
+  `DISTINCT` for one row per entity.
+- `--append` adds to existing tables instead of replacing them; the default
+  replaces, so a re-run is repeatable rather than accumulating duplicates.

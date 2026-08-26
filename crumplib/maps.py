@@ -67,9 +67,7 @@ class FieldMap:
         """
         found = {}
         for name, members in self.groups().items():
-            target = next(
-                (f for f in members if f.get("derived") == "geocode"), None
-            )
+            target = next((f for f in members if f.get("derived") == "geocode"), None)
             if target is None:
                 continue
             by_role = {}
