@@ -80,53 +80,77 @@ def parse_args(argv=None):
         epilog="https://github.com/openva/crump/",
     )
     parser.add_argument(
-        "-i", "--input", required=True, metavar="file.csv",
+        "-i",
+        "--input",
+        required=True,
+        metavar="file.csv",
         help="normalized CSV from crump, e.g. output/corp.csv",
     )
     parser.add_argument(
-        "-p", "--prefix", default="", metavar="str",
+        "-p",
+        "--prefix",
+        default="",
+        metavar="str",
         help="column prefix for the address to use, e.g. agent_",
     )
     parser.add_argument(
-        "--cache", default="addresses.db", metavar="file",
+        "--cache",
+        default="addresses.db",
+        metavar="file",
         help="geocoded address cache (default: %(default)s)",
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="verbose mode",
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="verbose mode",
     )
     parser.add_argument(
-        "-l", "--limit", type=int, metavar="n",
+        "-l",
+        "--limit",
+        type=int,
+        metavar="n",
         help="stop after n successful geocodes",
     )
     parser.add_argument(
-        "--delay", type=float, default=1.0, metavar="seconds",
+        "--delay",
+        type=float,
+        default=1.0,
+        metavar="seconds",
         help="minimum seconds between API calls (default: %(default)s)",
     )
     parser.add_argument(
-        "--retry-failures", action="store_true",
+        "--retry-failures",
+        action="store_true",
         help="re-attempt addresses that previously failed",
     )
     parser.add_argument(
-        "-b", "--batch", action="store_true",
+        "-b",
+        "--batch",
+        action="store_true",
         help=(
             "geocode non-Virginia addresses in bulk via the Census batch API "
             "(much faster; Virginia addresses still go to VGIN one at a time)"
         ),
     )
     parser.add_argument(
-        "--batch-size", type=int, default=batch_geocoder.MAX_BATCH_SIZE,
+        "--batch-size",
+        type=int,
+        default=batch_geocoder.MAX_BATCH_SIZE,
         metavar="n",
         help="addresses per batch request (default: %(default)s, max %(default)s)",
     )
     parser.add_argument(
-        "--batch-all", action="store_true",
+        "--batch-all",
+        action="store_true",
         help=(
             "send Virginia addresses through the Census batch API too, rather "
             "than the more accurate VGIN locator"
         ),
     )
     parser.add_argument(
-        "--allow-directional-conflicts", action="store_true",
+        "--allow-directional-conflicts",
+        action="store_true",
         help=(
             "keep batch matches whose directional contradicts the input "
             "(e.g. '1 W Main' matching '1 E Main'); rejected by default"
@@ -227,9 +251,7 @@ def geocode_census(session, street, city, state, zip_code, timeout=30):
         timeout=timeout,
     )
     response.raise_for_status()
-    matches = (
-        response.json().get("result", {}).get("addressMatches") or []
-    )
+    matches = response.json().get("result", {}).get("addressMatches") or []
     if not matches:
         return None, "no candidates"
 
@@ -259,17 +281,11 @@ def collect_addresses(options, db, fields):
     pending = {}
     counts = {"cached": 0, "skipped": 0, "duplicate": 0}
 
-    with open(
-        options.input, encoding="utf-8", errors="replace", newline=""
-    ) as handle:
+    with open(options.input, encoding="utf-8", errors="replace", newline="") as handle:
         reader = csv.DictReader(handle)
-        missing = [
-            name for name in fields.values() if name not in reader.fieldnames
-        ]
+        missing = [name for name in fields.values() if name not in reader.fieldnames]
         if missing:
-            sys.exit(
-                f"Error: {options.input} has no column(s): {', '.join(missing)}"
-            )
+            sys.exit(f"Error: {options.input} has no column(s): {', '.join(missing)}")
 
         for row in reader:
             street_1 = clean_text(row.get(fields["street_1"]))
@@ -287,9 +303,7 @@ def collect_addresses(options, db, fields):
                 counts["duplicate"] += 1
                 continue
 
-            cursor.execute(
-                "SELECT 1 FROM addresses WHERE address_hash = ?", (digest,)
-            )
+            cursor.execute("SELECT 1 FROM addresses WHERE address_hash = ?", (digest,))
             if cursor.fetchone():
                 counts["cached"] += 1
                 continue
@@ -339,9 +353,7 @@ def run_batches(options, db, pending, session):
             matches, rejected = batch_geocoder.geocode_batch(
                 chunk,
                 session=session,
-                reject_directional_conflicts=(
-                    not options.allow_directional_conflicts
-                ),
+                reject_directional_conflicts=(not options.allow_directional_conflicts),
             )
         except batch_geocoder.BatchError as error:
             print(f" -> failed: {error}")
@@ -396,9 +408,7 @@ def run_batch_mode(options, db, session, fields):
     virginia = {}
     if not options.batch_all:
         virginia = {
-            digest: row
-            for digest, row in pending.items()
-            if row["state"] == "VA"
+            digest: row for digest, row in pending.items() if row["state"] == "VA"
         }
         for digest in virginia:
             del pending[digest]
@@ -412,8 +422,7 @@ def run_batch_mode(options, db, session, fields):
     serial_counts = {"geocoded": 0, "failed": 0}
     if virginia:
         print(
-            f"Geocoding {len(virginia):,} Virginia addresses via VGIN "
-            f"(one at a time)"
+            f"Geocoding {len(virginia):,} Virginia addresses via VGIN (one at a time)"
         )
         serial_counts = run_serial(options, db, session, virginia)
 
@@ -504,15 +513,12 @@ def main(argv=None):
     last_error = None
     counts = {"cached": 0, "skipped": 0, "geocoded": 0, "failed": 0}
 
-    with open(
-        options.input, encoding="utf-8", errors="replace", newline=""
-    ) as handle:
+    with open(options.input, encoding="utf-8", errors="replace", newline="") as handle:
         reader = csv.DictReader(handle)
         missing = [name for name in fields.values() if name not in reader.fieldnames]
         if missing:
             sys.exit(
-                "Error: %s has no column(s): %s"
-                % (options.input, ", ".join(missing))
+                "Error: %s has no column(s): %s" % (options.input, ", ".join(missing))
             )
 
         for row in reader:
@@ -529,9 +535,7 @@ def main(argv=None):
 
             digest = address_hash(street_1, street_2, city, state, zip_code)
 
-            cursor.execute(
-                "SELECT 1 FROM addresses WHERE address_hash = ?", (digest,)
-            )
+            cursor.execute("SELECT 1 FROM addresses WHERE address_hash = ?", (digest,))
             if cursor.fetchone():
                 counts["cached"] += 1
                 _tick(options, "C")
@@ -557,9 +561,7 @@ def main(argv=None):
             geocoder = geocode_virginia if state == "VA" else geocode_census
 
             try:
-                result, reason = geocoder(
-                    session, street, city, state, zip_code
-                )
+                result, reason = geocoder(session, street, city, state, zip_code)
                 consecutive_errors = 0
             except requests.RequestException as error:
                 consecutive_errors += 1
