@@ -44,6 +44,26 @@ class TestSyncCommand:
         assert command[command.index("--exclude") + 1] == "*"
         assert command[command.index("--include") + 1] == "*.json"
 
+    def test_include_pattern_is_configurable(self):
+        command = publish.sync_command("out", "bucket", include="*.csv")
+        assert command[command.index("--include") + 1] == "*.csv"
+
+    def test_csv_gets_a_csv_content_type(self):
+        """Locality files must not be served as application/json."""
+        command = publish.sync_command("out", "bucket", include="*.csv")
+        assert command[command.index("--content-type") + 1] == "text/csv"
+
+    def test_unknown_include_falls_back_to_octet_stream(self):
+        command = publish.sync_command("out", "bucket", include="*.zip")
+        assert command[command.index("--content-type") + 1] == (
+            "application/octet-stream"
+        )
+
+    def test_exclude_still_precedes_include(self):
+        """Order matters to the AWS CLI: --exclude * must come first."""
+        command = publish.sync_command("out", "bucket", include="*.csv")
+        assert command.index("--exclude") < command.index("--include")
+
     def test_delete_is_off_by_default(self):
         """A partial run plus --delete would erase most of the API."""
         assert "--delete" not in publish.sync_command("out", "bucket")
@@ -102,3 +122,13 @@ class TestUploadFile:
         monkeypatch.setattr(publish, "aws_available", lambda: False)
         with pytest.raises(publish.PublishError, match="AWS CLI"):
             publish.upload_file(str(path), "bucket", "k")
+
+
+class TestContentTypes:
+    def test_known_types_are_mapped(self):
+        assert publish.CONTENT_TYPES["*.json"] == "application/json"
+        assert publish.CONTENT_TYPES["*.csv"] == "text/csv"
+
+    def test_json_and_csv_differ(self):
+        """A CSV served as application/json behaves badly in a browser."""
+        assert publish.CONTENT_TYPES["*.json"] != publish.CONTENT_TYPES["*.csv"]

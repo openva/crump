@@ -19,6 +19,7 @@ from crumplib import publish
 from crumplib.atomize import Atomizer, group_related
 from crumplib.geocache import GeocodeCache
 from crumplib.jurisdiction import JurisdictionIndex
+from crumplib.localities import ENTITY_STEMS, LocalityWriter
 from crumplib.maps import load_maps
 from crumplib.output import CsvWriter, JsonArrayWriter, JsonLinesWriter
 from crumplib.records import RecordNormalizer
@@ -44,90 +45,152 @@ RELATED_MAPS = {
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
-        description=(
-            "A normalizer for Virginia State Corporation Commission records"
-        ),
+        description=("A normalizer for Virginia State Corporation Commission records"),
         epilog="https://github.com/openva/crump/",
     )
     parser.add_argument(
-        "-i", "--input", default="data", metavar="dir",
+        "-i",
+        "--input",
+        default="data",
+        metavar="dir",
         help="directory holding the SCC CSVs (default: %(default)s)",
     )
     parser.add_argument(
-        "-o", "--output", default="output", metavar="dir",
+        "-o",
+        "--output",
+        default="output",
+        metavar="dir",
         help="directory for JSON and CSV (default: %(default)s)",
     )
     parser.add_argument(
-        "-d", "--download", action="store_true",
+        "-d",
+        "--download",
+        action="store_true",
         help="download and extract the current data file",
     )
     parser.add_argument(
-        "-g", "--geocode", action="store_true",
+        "-g",
+        "--geocode",
+        action="store_true",
         help="attach coordinates from the geocoded address cache",
     )
     parser.add_argument(
-        "--cache", default="addresses.db", metavar="file",
+        "--cache",
+        default="addresses.db",
+        metavar="file",
         help="geocoded address cache (default: %(default)s)",
     )
     parser.add_argument(
-        "-j", "--jurisdiction", action="store_true",
+        "-j",
+        "--jurisdiction",
+        action="store_true",
         help=(
             "assign each principal office to the Virginia county or "
             "independent city containing it (implies -g)"
         ),
     )
     parser.add_argument(
-        "--boundaries", default=None, metavar="file",
+        "-L",
+        "--localities",
+        action="store_true",
+        help=(
+            "write one CSV per Virginia county and independent city, for "
+            "local business-licensure use (implies -j)"
+        ),
+    )
+    parser.add_argument(
+        "--localities-dir",
+        default=None,
+        metavar="dir",
+        help="where locality CSVs go (default: <output>/localities)",
+    )
+    parser.add_argument(
+        "--boundaries",
+        default=None,
+        metavar="file",
         help=(
             "jurisdiction boundary file "
             "(default: boundaries/va_jurisdictions.geojson.gz)"
         ),
     )
     parser.add_argument(
-        "--maps", default="table_maps", metavar="dir",
+        "--maps",
+        default="table_maps",
+        metavar="dir",
         help="directory of YAML field maps (default: %(default)s)",
     )
     parser.add_argument(
-        "--json", choices=("array", "lines", "none"), default="lines",
+        "--json",
+        choices=("array", "lines", "none"),
+        default="lines",
         help="JSON output format (default: %(default)s)",
     )
     parser.add_argument(
-        "--no-csv", action="store_true", help="skip CSV output",
+        "--no-csv",
+        action="store_true",
+        help="skip CSV output",
     )
     parser.add_argument(
-        "-a", "--atomize", action="store_true",
+        "-a",
+        "--atomize",
+        action="store_true",
         help="write one JSON file per entity, for serving a static API",
     )
     parser.add_argument(
-        "--atomize-dir", default=None, metavar="dir",
+        "--atomize-dir",
+        default=None,
+        metavar="dir",
         help="where per-entity JSON goes (default: <output>/entity)",
     )
     parser.add_argument(
-        "--atomize-indent", type=int, default=None, metavar="n",
+        "--atomize-indent",
+        type=int,
+        default=None,
+        metavar="n",
         help="indent per-entity JSON by n spaces (default: compact)",
     )
     parser.add_argument(
-        "--no-related", action="store_true",
+        "--no-related",
+        action="store_true",
         help="when atomizing, omit officers, names, amendments, and mergers",
     )
     parser.add_argument(
-        "--publish", metavar="bucket",
-        help="sync atomized JSON to this S3 bucket (implies -a)",
+        "--publish",
+        metavar="bucket",
+        help=(
+            "sync generated files to this S3 bucket: per-entity JSON and "
+            "locality CSVs (implies -a and -L, and so -j and -g)"
+        ),
     )
     parser.add_argument(
-        "--publish-prefix", default="entity", metavar="path",
-        help="key prefix within the bucket (default: %(default)s)",
+        "--publish-prefix",
+        default="entity",
+        metavar="path",
+        help="key prefix for per-entity JSON (default: %(default)s)",
     )
     parser.add_argument(
-        "--publish-dry-run", action="store_true",
+        "--localities-prefix",
+        default="localities",
+        metavar="path",
+        help="key prefix for locality CSVs (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--publish-dry-run",
+        action="store_true",
         help="show what would be uploaded, without uploading",
     )
     parser.add_argument(
-        "-l", "--limit", type=int, metavar="n",
+        "-l",
+        "--limit",
+        type=int,
+        metavar="n",
         help="stop after n records per file (for testing)",
     )
     parser.add_argument(
-        "-f", "--files", nargs="+", metavar="stem",
+        "-f",
+        "--files",
+        nargs="+",
+        metavar="stem",
         help="only process these maps, e.g. corp llc",
     )
     return parser.parse_args(argv)
@@ -139,8 +202,15 @@ def human(number):
 
 
 def process(
-    field_map, source_path, output_dir, options, cache,
-    atomizer=None, related=None, jurisdictions=None,
+    field_map,
+    source_path,
+    output_dir,
+    options,
+    cache,
+    atomizer=None,
+    related=None,
+    jurisdictions=None,
+    localities=None,
 ):
     """Normalize one CSV file. Returns (records written, normalizer)."""
     normalizer = RecordNormalizer(
@@ -161,9 +231,7 @@ def process(
         )
     elif options.json == "lines":
         writers.append(
-            JsonLinesWriter(
-                os.path.join(output_dir, field_map.stem + ".jsonl")
-            )
+            JsonLinesWriter(os.path.join(output_dir, field_map.stem + ".jsonl"))
         )
 
     written = 0
@@ -184,6 +252,8 @@ def process(
                         record.get("id"),
                         _entity_document(record, field_map.stem, related),
                     )
+                if localities is not None:
+                    localities.write(record, field_map.stem)
                 written += 1
                 if options.limit and written >= options.limit:
                     break
@@ -248,11 +318,19 @@ def load_related(maps, options):
 def main(argv=None):
     options = parse_args(argv)
 
-    # Publishing is only meaningful with per-entity files to publish.
+    # --publish means "publish everything Crump produces": both the per-entity
+    # JSON and the locality CSVs, unless the run already asked for a subset.
+    # Note this pulls in geocoding and jurisdiction assignment, since locality
+    # files are grouped by jurisdiction -- so a bare --publish needs the address
+    # cache and costs a couple of extra minutes.
     if options.publish:
         options.atomize = True
+        options.localities = True
 
-    # Jurisdiction is derived from coordinates, so it needs the geocode cache.
+    # Locality files are grouped by jurisdiction, which is derived from
+    # coordinates -- so each option implies the one below it.
+    if options.localities:
+        options.jurisdiction = True
     if options.jurisdiction:
         options.geocode = True
 
@@ -287,10 +365,7 @@ def main(argv=None):
     if options.geocode:
         cache = GeocodeCache(options.cache)
         if cache.available:
-            print(
-                f"Loaded {human(len(cache))} cached addresses "
-                f"from {options.cache}"
-            )
+            print(f"Loaded {human(len(cache))} cached addresses from {options.cache}")
         else:
             print(
                 f"Warning: no usable address cache at {options.cache}; "
@@ -302,9 +377,7 @@ def main(argv=None):
     related = None
     atomize_root = None
     if options.atomize:
-        atomize_root = options.atomize_dir or os.path.join(
-            options.output, "entity"
-        )
+        atomize_root = options.atomize_dir or os.path.join(options.output, "entity")
         if options.no_related:
             print(f"Atomizing to {atomize_root}/ (entities only)")
         else:
@@ -322,6 +395,21 @@ def main(argv=None):
             f"(counties and independent cities)"
         )
 
+    if options.publish:
+        print(
+            "Publishing: will generate per-entity JSON and locality CSVs "
+            "(implies -a, -L, -j, -g)"
+        )
+
+    localities = None
+    localities_dir = None
+    if options.localities:
+        localities_dir = options.localities_dir or os.path.join(
+            options.output, "localities"
+        )
+        localities = LocalityWriter(localities_dir)
+        print(f"Writing locality files to {localities_dir}/")
+
     total = 0
     unknown_codes = {}
     atomizer_stats = {"written": 0, "skipped": 0}
@@ -338,15 +426,21 @@ def main(argv=None):
 
         print(f"Processing {field_map.csv_name}", end="", flush=True)
         written, normalizer = process(
-            field_map, source_path, options.output, options, cache,
-            atomizer=atomizer, related=related, jurisdictions=jurisdictions,
+            field_map,
+            source_path,
+            options.output,
+            options,
+            cache,
+            atomizer=atomizer,
+            related=related,
+            jurisdictions=jurisdictions,
+            localities=localities if stem in ENTITY_STEMS else None,
         )
         if atomizer is not None:
             atomizer_stats["written"] += atomizer.written
             atomizer_stats["skipped"] += atomizer.skipped
             print(
-                f" -> {human(written)} records, "
-                f"{human(atomizer.written)} entity files"
+                f" -> {human(written)} records, {human(atomizer.written)} entity files"
             )
         else:
             print(f" -> {human(written)} records")
@@ -377,8 +471,31 @@ def main(argv=None):
             )
         cache.close()
 
+    if localities is not None:
+        counts = localities.counts()
+        localities.close()
+        print(
+            f"Wrote {human(localities.written)} businesses across "
+            f"{len(counts)} locality files in {localities_dir}/"
+        )
+
     if options.publish:
-        _publish(options, atomize_root)
+        if options.atomize:
+            _publish(
+                options,
+                atomize_root,
+                options.publish_prefix,
+                "per-entity JSON",
+                "*.json",
+            )
+        if options.localities:
+            _publish(
+                options,
+                localities_dir,
+                options.localities_prefix,
+                "locality CSVs",
+                "*.csv",
+            )
 
     # Surface codes the maps don't document, rather than silently passing them
     # through -- this is how we learn the SCC added a value.
@@ -392,22 +509,38 @@ def main(argv=None):
     return 0
 
 
-def _publish(options, atomize_root):
-    """Sync the atomized output to S3."""
+def _publish(options, source, prefix, label, include):
+    """Sync one directory of generated files to S3."""
+    if source is None or not os.path.isdir(source):
+        print(f"\nWarning: nothing to publish for {label} ({source} not found)")
+        return
+
+    # An empty directory means the run produced nothing -- usually a missing
+    # address cache. Syncing it would leave whatever is already on S3 in place,
+    # so say so rather than reporting a successful no-op.
+    if not os.listdir(source):
+        print(
+            f"\nWarning: no {label} were generated, so none were published. "
+            f"Anything already in s3://{options.publish}/{prefix} is unchanged."
+        )
+        return
+
     command = publish.sync_command(
-        atomize_root,
+        source,
         options.publish,
-        prefix=options.publish_prefix,
+        prefix=prefix,
         dry_run=options.publish_dry_run,
+        include=include,
     )
-    print(f"\nPublishing to s3://{options.publish}/{options.publish_prefix}")
+    print(f"\nPublishing {label} to s3://{options.publish}/{prefix}")
     print("  " + " ".join(command))
     try:
         output = publish.sync(
-            atomize_root,
+            source,
             options.publish,
-            prefix=options.publish_prefix,
+            prefix=prefix,
             dry_run=options.publish_dry_run,
+            include=include,
         )
     except publish.PublishError as error:
         # A failed upload should not discard a successful parse.

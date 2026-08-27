@@ -20,10 +20,24 @@ def aws_available():
     return shutil.which("aws") is not None
 
 
+#: What to publish, by file type: the include pattern and the Content-Type S3
+#: should serve it with.
+CONTENT_TYPES = {
+    "*.json": "application/json",
+    "*.csv": "text/csv",
+}
+
+
 def sync_command(
-    source, bucket, prefix="", cache_seconds=86400, delete=False, dry_run=False
+    source,
+    bucket,
+    prefix="",
+    cache_seconds=86400,
+    delete=False,
+    dry_run=False,
+    include="*.json",
 ):
-    """Build the `aws s3 sync` command for publishing entity JSON.
+    """Build the `aws s3 sync` command for publishing a directory.
 
     Returns the argument list rather than running it, so callers can show the
     user exactly what would happen.
@@ -39,15 +53,16 @@ def sync_command(
         source,
         destination,
         "--content-type",
-        "application/json",
+        CONTENT_TYPES.get(include, "application/octet-stream"),
         # A static API is only useful if clients can read it cross-origin.
         "--cache-control",
         f"public, max-age={cache_seconds}",
-        # Only .json files; never publish stray local files.
+        # Publish only the file type we generated; never sweep up stray local
+        # files into a public bucket.
         "--exclude",
         "*",
         "--include",
-        "*.json",
+        include,
     ]
     if delete:
         # Removes entities that no longer exist upstream. Off by default: a
