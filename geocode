@@ -430,6 +430,8 @@ def run_serial(options, db, session, rows):
     """Geocode addresses one at a time through VGIN."""
     counts = {"geocoded": 0, "failed": 0}
     consecutive_errors = 0
+    last_error = None
+
     # Only useful when single characters are actually being printed.
     if not options.verbose:
         print_progress_key()
@@ -443,12 +445,10 @@ def run_serial(options, db, session, rows):
             consecutive_errors = 0
         except requests.RequestException as error:
             consecutive_errors += 1
+            last_error = error
             _tick(options, "!", f"API error: {error}")
             if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
-                print(
-                    f"\nToo many consecutive API errors "
-                    f"({consecutive_errors}): stopping."
-                )
+                print(halt_message(consecutive_errors, last_error, VGIN_URL))
                 break
             continue
 
@@ -563,12 +563,12 @@ def main(argv=None):
                 consecutive_errors = 0
             except requests.RequestException as error:
                 consecutive_errors += 1
-                _tick(options, "!", "API error: %s" % error)
+                last_error = error
+                _tick(options, "!", f"API error: {error}")
                 if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
-                    sys.exit(
-                        "\nToo many consecutive API errors (%d): halting."
-                        % consecutive_errors
-                    )
+                    url = VGIN_URL if state == "VA" else CENSUS_URL
+                    db.close()
+                    sys.exit(halt_message(consecutive_errors, last_error, url))
                 continue
 
             if result is None:
@@ -624,6 +624,23 @@ def _record_failure(db, digest, reason):
         (digest, int(time.time()), reason),
     )
     db.commit()
+
+
+def halt_message(count, error, url):
+    """Explain why geocoding stopped, including the error that caused it.
+
+    The count alone is not actionable: a DNS failure, a timeout and an HTTP 503
+    all look identical as a row of `!` characters. Quoting the last error and
+    naming the service is usually enough to tell "the API is down" from "the
+    network is down" from "we are being rate-limited".
+    """
+    lines = [
+        f"\nStopping: {count} consecutive API errors.",
+        f"  Service: {url}",
+        f"  Last error: {error}",
+        f"  Error type: {type(error).__name__}",
+    ]
+    return "\n".join(lines)
 
 
 def print_progress_key():
