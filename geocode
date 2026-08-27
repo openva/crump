@@ -61,6 +61,18 @@ CREATE TABLE IF NOT EXISTS failures (
 )
 """
 
+#: The single characters printed as each address is processed, and what they
+#: mean. Shown as a key at the start of a run so the stream of symbols is
+#: readable while it scrolls past.
+PROGRESS_KEY = (
+    ("+", "geocoded"),
+    ("x", "no match"),
+    ("C", "cached"),
+    ("A", "no address"),
+    ("F", "failed before"),
+    ("!", "API error"),
+)
+
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
@@ -418,6 +430,9 @@ def run_serial(options, db, session, rows):
     """Geocode addresses one at a time through VGIN."""
     counts = {"geocoded": 0, "failed": 0}
     consecutive_errors = 0
+    # Only useful when single characters are actually being printed.
+    if not options.verbose:
+        print_progress_key()
 
     for digest, row in rows.items():
         started = time.monotonic()
@@ -482,7 +497,11 @@ def main(argv=None):
     if options.batch:
         return run_batch_mode(options, db, session, fields)
 
+    if not options.verbose:
+        print_progress_key()
+
     consecutive_errors = 0
+    last_error = None
     counts = {"cached": 0, "skipped": 0, "geocoded": 0, "failed": 0}
 
     with open(
@@ -605,6 +624,15 @@ def _record_failure(db, digest, reason):
         (digest, int(time.time()), reason),
     )
     db.commit()
+
+
+def print_progress_key():
+    """Print the legend for the per-address progress characters.
+
+    No label prefix: the legend reads as one already, and the line has to fit
+    an 80-column terminal without wrapping.
+    """
+    print("  ".join(f"{symbol} {meaning}" for symbol, meaning in PROGRESS_KEY))
 
 
 def _tick(options, symbol, message=None):

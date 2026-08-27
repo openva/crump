@@ -276,6 +276,29 @@ database, and nothing uploads unless you ask.
 ./geocode -i output/corp.csv -p agent_    # registered agent addresses
 ```
 
+While it runs, `geocode` prints one character per address and a key explaining
+them:
+
+```
++ geocoded  x no match  C cached  A no address  F failed before  ! API error
+```
+
+Use `-v` for a line of detail per address instead.
+
+After ten consecutive API errors it stops, reporting the service, the last
+error, and its type — enough to tell a DNS failure from a timeout from a
+rate limit without re-running:
+
+```
+Stopping: 10 consecutive API errors.
+  Service: https://vginmaps.vdem.virginia.gov/.../findAddressCandidates
+  Last error: HTTPSConnectionPool(host='...', port=443): Max retries exceeded
+  Error type: ConnectionError
+```
+
+Everything geocoded before the failure is already saved, so re-running picks up
+where it stopped.
+
 Virginia addresses are geocoded by [the VGIN composite locator](https://vginmaps.vdem.virginia.gov/); everything else goes to [the Census geocoder](https://geocoding.geo.census.gov/). Results and failures are both cached, so re-running only attempts addresses it hasn't seen.
 
 The bundled cache holds about 565,000 addresses geocoded in 2014–15, which covers roughly a fifth of the unique addresses in the current data.
