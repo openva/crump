@@ -16,13 +16,14 @@ import sys
 
 from crumplib import download as downloader
 from crumplib import publish
-from crumplib.atomize import Atomizer, group_related
+from crumplib.atomize import Atomizer, prune, repeated_ids, stale_files
 from crumplib.geocache import GeocodeCache
 from crumplib.jurisdiction import JurisdictionIndex
 from crumplib.localities import ENTITY_STEMS, LocalityWriter
 from crumplib.maps import load_maps
 from crumplib.output import CsvWriter, JsonArrayWriter, JsonLinesWriter
 from crumplib.records import RecordNormalizer
+from crumplib.related import RelatedStore
 
 # Entity names and addresses can be long; the default field limit is not enough
 # for a 647 MB CSV with quoted free-text columns.
@@ -180,6 +181,32 @@ def parse_args(argv=None):
         help="show what would be uploaded, without uploading",
     )
     parser.add_argument(
+        "--prune",
+        action="store_true",
+        help=(
+            "delete per-entity files, locally and on S3, for entities no "
+            "longer in the SCC feed (requires a complete run)"
+        ),
+    )
+    parser.add_argument(
+        "--prune-limit",
+        type=float,
+        default=5.0,
+        metavar="pct",
+        help=(
+            "refuse to prune if more than this %% of entities look stale, as a "
+            "guard against a truncated download (default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
+        "--force-rewrite",
+        action="store_true",
+        help=(
+            "rewrite every per-entity file even if unchanged; only needed if "
+            "the output format changed"
+        ),
+    )
+    parser.add_argument(
         "-l",
         "--limit",
         type=int,
@@ -272,11 +299,12 @@ def _entity_document(record, entity_type, related):
     """
     document = dict(record)
     document["entity_type"] = entity_type
-    if not related:
+    if related is None:
         return document
     entity_id = record.get("id")
-    for key, index in related.items():
-        matches = index.get(entity_id)
+    if not entity_id:
+        return document
+    for key, matches in related.fetch(entity_id).items():
         if matches:
             document[key] = matches
     return document
@@ -292,10 +320,12 @@ def _normalized_rows(handle, normalizer):
 def load_related(maps, options):
     """Index the related-record files by entity ID, for atomizing.
 
-    Normalized through the same maps as everything else, so an atomized
-    officer looks like an officer in officer.csv.
+    Stored on disk rather than in a dict: the four files total nearly two
+    million rows, which cost about 850 MB in memory -- more than the whole
+    budget on a small server. Normalized through the same maps as everything
+    else, so an atomized officer looks like a row in officer.csv.
     """
-    related = {}
+    store = RelatedStore()
     for stem, key in RELATED_MAPS.items():
         field_map = maps.get(stem)
         if field_map is None:
@@ -308,11 +338,10 @@ def load_related(maps, options):
         with open(
             source_path, encoding="utf-8", errors="replace", newline=""
         ) as handle:
-            related[key] = group_related(
-                source_path, "id", _normalized_rows(handle, normalizer)
-            )
-        print(f" -> {human(len(related[key]))} entities")
-    return related
+            stored = store.add_all(key, "id", _normalized_rows(handle, normalizer))
+        print(f" -> {human(stored)} rows, {human(store.entities(key))} entities")
+    store.index()
+    return store
 
 
 def main(argv=None):
@@ -401,6 +430,24 @@ def main(argv=None):
             "(implies -a, -L, -j, -g)"
         )
 
+    # Entities with more than one source row must be buffered so the last row
+    # wins deterministically; the rest are written as they stream past. Finding
+    # them up front costs a few seconds and a couple of megabytes, versus the
+    # ~2.2 GB it would take to buffer every record.
+    deferred = None
+    if options.atomize:
+        entity_paths = [
+            os.path.join(options.input, maps[stem].csv_name)
+            for stem in ENTITY_MAPS
+            if stem in maps
+            and os.path.isfile(os.path.join(options.input, maps[stem].csv_name))
+        ]
+        deferred = repeated_ids(entity_paths)
+        print(
+            f"Found {human(len(deferred))} entities with multiple source rows "
+            "(these are buffered; the rest stream straight to disk)"
+        )
+
     localities = None
     localities_dir = None
     if options.localities:
@@ -412,7 +459,8 @@ def main(argv=None):
 
     total = 0
     unknown_codes = {}
-    atomizer_stats = {"written": 0, "skipped": 0}
+    atomizer_stats = {"written": 0, "unchanged": 0, "skipped": 0}
+    atomizer_ids = set()
     for stem in sorted(maps):
         field_map = maps[stem]
         source_path = os.path.join(options.input, field_map.csv_name)
@@ -422,7 +470,12 @@ def main(argv=None):
 
         atomizer = None
         if options.atomize and stem in ENTITY_MAPS:
-            atomizer = Atomizer(atomize_root, indent=options.atomize_indent)
+            atomizer = Atomizer(
+                atomize_root,
+                indent=options.atomize_indent,
+                always_write=options.force_rewrite,
+                deferred=deferred,
+            )
 
         print(f"Processing {field_map.csv_name}", end="", flush=True)
         written, normalizer = process(
@@ -437,10 +490,15 @@ def main(argv=None):
             localities=localities if stem in ENTITY_STEMS else None,
         )
         if atomizer is not None:
+            atomizer.flush()
             atomizer_stats["written"] += atomizer.written
+            atomizer_stats["unchanged"] += atomizer.unchanged
             atomizer_stats["skipped"] += atomizer.skipped
+            atomizer_ids.update(atomizer.ids)
             print(
-                f" -> {human(written)} records, {human(atomizer.written)} entity files"
+                f" -> {human(written)} records, "
+                f"{human(atomizer.written)} changed, "
+                f"{human(atomizer.unchanged)} unchanged"
             )
         else:
             print(f" -> {human(written)} records")
@@ -451,15 +509,33 @@ def main(argv=None):
     print(f"\nWrote {human(total)} records to {options.output}/")
 
     if options.atomize:
-        print(
-            f"Wrote {human(atomizer_stats['written'])} per-entity JSON files "
-            f"to {atomize_root}/"
+        total_entities = atomizer_stats["written"] + atomizer_stats["unchanged"]
+        churn = (
+            100.0 * atomizer_stats["written"] / total_entities
+            if total_entities
+            else 0.0
         )
+        print(
+            f"Per-entity JSON in {atomize_root}/: "
+            f"{human(atomizer_stats['written'])} changed, "
+            f"{human(atomizer_stats['unchanged'])} unchanged "
+            f"({churn:.2f}% churn)"
+        )
+        # A sudden jump to near-total churn usually means the output format
+        # changed or the feed did -- worth saying out loud on a weekly cron.
+        if churn > 50.0 and atomizer_stats["unchanged"]:
+            print(
+                "  Note: unusually high churn. If the output format changed "
+                "this is expected; otherwise check the source data."
+            )
         if atomizer_stats["skipped"]:
             print(
                 f"  skipped {human(atomizer_stats['skipped'])} records "
                 "with unusable entity IDs"
             )
+
+        if options.prune:
+            _prune(options, atomize_root, atomizer_ids, total_entities)
 
     if cache is not None and cache.available:
         looked_up = cache.hits + cache.misses
@@ -470,6 +546,10 @@ def main(argv=None):
                 f"({100.0 * cache.hits / looked_up:.1f}%)"
             )
         cache.close()
+
+    if related is not None:
+        # Temporary index; nothing downstream needs it once atomizing is done.
+        related.close()
 
     if localities is not None:
         counts = localities.counts()
@@ -487,6 +567,9 @@ def main(argv=None):
                 options.publish_prefix,
                 "per-entity JSON",
                 "*.json",
+                # Mirror local deletions to S3 only when the run was complete
+                # enough for pruning to have been allowed.
+                delete=options.prune and not (options.limit or options.files),
             )
         if options.localities:
             _publish(
@@ -509,7 +592,45 @@ def main(argv=None):
     return 0
 
 
-def _publish(options, source, prefix, label, include):
+def _prune(options, atomize_root, current_ids, total_entities):
+    """Delete per-entity files for entities no longer in the feed.
+
+    Heavily guarded. Crump cannot distinguish "the SCC removed this entity"
+    from "the download was truncated", so a partial run would look like a mass
+    deletion. Pruning is refused unless the run covered everything and the
+    stale count is plausibly small.
+    """
+    if options.limit:
+        print("  Not pruning: --limit means this run saw only part of the feed")
+        return
+    if options.files:
+        print("  Not pruning: --files means this run saw only some entity types")
+        return
+
+    stale = stale_files(atomize_root, current_ids)
+    if not stale:
+        print("  Nothing to prune")
+        return
+
+    share = 100.0 * len(stale) / (total_entities + len(stale))
+    if share > options.prune_limit:
+        print(
+            f"  Refusing to prune: {human(len(stale))} files ({share:.1f}%) "
+            f"look stale, above the {options.prune_limit}% limit. "
+            "That usually means a truncated download rather than mass "
+            "terminations. Re-run, or raise --prune-limit if it is real."
+        )
+        return
+
+    if options.publish_dry_run:
+        print(f"  Would prune {human(len(stale))} stale files ({share:.2f}%)")
+        return
+
+    removed = prune(atomize_root, current_ids)
+    print(f"  Pruned {human(removed)} stale files ({share:.2f}%)")
+
+
+def _publish(options, source, prefix, label, include, delete=False):
     """Sync one directory of generated files to S3."""
     if source is None or not os.path.isdir(source):
         print(f"\nWarning: nothing to publish for {label} ({source} not found)")
@@ -531,6 +652,7 @@ def _publish(options, source, prefix, label, include):
         prefix=prefix,
         dry_run=options.publish_dry_run,
         include=include,
+        delete=delete,
     )
     print(f"\nPublishing {label} to s3://{options.publish}/{prefix}")
     print("  " + " ".join(command))
@@ -541,6 +663,7 @@ def _publish(options, source, prefix, label, include):
             prefix=prefix,
             dry_run=options.publish_dry_run,
             include=include,
+            delete=delete,
         )
     except publish.PublishError as error:
         # A failed upload should not discard a successful parse.
