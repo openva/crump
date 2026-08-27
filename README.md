@@ -70,8 +70,15 @@ Each input file has a YAML map in [`table_maps/`](table_maps/) describing its fi
 that S3 can serve with no application behind it:
 
 ```sh
-./crump -dga --publish data.vabusinesses.org
+./crump -d --publish data.vabusinesses.org
 ```
+
+`--publish` publishes everything Crump produces — per-entity JSON under
+`entity/` and locality CSVs under `localities/` — so it implies `-a` and `-L`,
+and through them `-j` and `-g`. That means it needs the geocoded address cache
+and takes a few minutes longer than a bare parse. Each artifact is served with
+the right Content-Type, and only files of the expected type are uploaded, so
+stray local files can never end up in a public bucket.
 
 Each document holds the entity's own fields plus its related records — officers,
 former and fictitious names, amendments, and mergers — so a single request
@@ -133,6 +140,51 @@ Boundaries are the Census Bureau's TIGER data (2023), shipped in
 [`boundaries/`](boundaries/) as a 2.6 MB file so lookups work offline and
 reproducibly. Virginia's boundaries effectively never change, so the vintage is
 pinned deliberately.
+
+## Per-locality business lists
+
+`-L` writes one CSV per Virginia county and independent city, intended for
+municipal business-licensure departments checking the state's registrations
+against their own license rolls:
+
+```sh
+./crump -dL      # download, geocode, assign jurisdictions, write locality files
+```
+
+Files are named `<FIPS>-<Locality>.csv` — `51003-Albemarle-County.csv`,
+`51760-Richmond-city.csv`. The FIPS code leads so files sort stably, and the
+`County` / `city` suffix is kept because Fairfax, Franklin, Richmond and Roanoke
+are each *both* a county and an independent city.
+
+Each row is one business, with all six entity types merged into a single file
+(hence the `entity_type` column):
+
+| Column | |
+|---|---|
+| `id`, `entity_type`, `name` | which business, and what kind |
+| `status`, `status_reason`, `status_date` | standing with the SCC |
+| `incorporation_date` | when it was formed |
+| `street_1`, `street_2`, `city`, `state`, `zip` | principal office |
+| `latitude`, `longitude` | the geocoded point |
+
+Registered agents, officers, and directors are deliberately excluded: an agent
+is usually a law firm or a registered-agent service at an address unrelated to
+where the business actually operates.
+
+**Every status is included**, not just active businesses, so a department can
+filter as it sees fit — an entity terminated last year may still owe a license
+for the year it operated.
+
+Note that a business only appears if its address could be geocoded, so these
+lists are not a complete roster of businesses in a locality. Absence from a file
+is not evidence that a business does not exist. `-L` implies `-j`, which implies
+`-g`.
+
+Add `--publish` to upload them:
+
+```sh
+./crump -dL --publish data.vabusinesses.org    # to s3://.../localities/
+```
 
 ## A SQLite database
 
