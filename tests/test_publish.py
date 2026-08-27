@@ -71,6 +71,13 @@ class TestSyncCommand:
     def test_delete_when_requested(self):
         assert "--delete" in publish.sync_command("out", "bucket", delete=True)
 
+    def test_delete_mirrors_local_pruning(self):
+        """--delete is how entity removals reach S3, so it must be explicit."""
+        without = publish.sync_command("out", "bucket")
+        with_delete = publish.sync_command("out", "bucket", delete=True)
+        assert "--delete" not in without
+        assert with_delete.count("--delete") == 1
+
     def test_dry_run(self):
         assert "--dryrun" in publish.sync_command("out", "bucket", dry_run=True)
 
