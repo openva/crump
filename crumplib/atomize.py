@@ -10,6 +10,7 @@ feed -- so a single namespace is safe and callers don't need to know whether an
 ID belongs to an LLC or a corporation.
 """
 
+import csv
 import json
 import os
 
@@ -64,17 +65,38 @@ def path_for(entity_id, root):
 class Atomizer:
     """Writes one JSON file per entity, sharded by ID prefix.
 
+    Writes are content-aware: a file whose contents already match is left
+    alone, mtime included. That matters because `aws s3 sync` decides what to
+    upload by comparing size and modification time, so rewriting an unchanged
+    file makes it look newer and forces a pointless upload. Only about 0.5% of
+    entities change status in a given week, so rewriting all 2 million meant
+    re-uploading the entire API to publish a few thousand changes.
+
+    Skipping the write is also *faster* than doing it -- avoiding the disk
+    flush more than pays for the read -- so this costs nothing in the steady
+    state.
+
     Entities are written as they stream past. Related records (officers, name
-    history, and so on) are attached by `attach`, which is why atomizing runs
-    after the main pass rather than during it.
+    history, and so on) are attached before the record arrives here.
     """
 
-    def __init__(self, root, indent=None):
+    def __init__(self, root, indent=None, always_write=False, deferred=None):
         self.root = root
         self.indent = indent
+        #: Set to bypass the content check, e.g. to force a full rewrite.
+        self.always_write = always_write
+        #: Entity ids known to appear on more than one source row. Only these
+        #: need buffering; everything else can be written the moment it
+        #: arrives. Pass `None` to buffer everything, which is correct but
+        #: needs ~2.2 GB for the full feed.
+        self.deferred = deferred
         self.written = 0
+        self.unchanged = 0
         self.skipped = 0
+        self.ids = set()
         self._made = set()
+        #: Final content for deferred entities only, held until flush().
+        self._pending = {}
 
     def _ensure_shard(self, shard):
         if shard not in self._made:
@@ -82,19 +104,68 @@ class Atomizer:
             self._made.add(shard)
 
     def write(self, entity_id, record):
-        """Write one entity's JSON file. Returns the path, or None if skipped."""
+        """Write an entity's JSON file, or defer it if the entity repeats.
+
+        The SCC ships several rows for one entity when registered-agent or
+        merger history differs, and the last row is its real content. Writing
+        an intermediate row would put the wrong content on disk -- and worse,
+        which row won varied between runs, so those files oscillated and
+        re-uploaded every week forever.
+
+        Buffering every entity would fix that but costs ~2.2 GB for the full
+        feed. Since only ~1.8% of entities repeat, `deferred` names just those
+        and the other 98% are written straight through.
+        """
         try:
             cleaned = safe_id(entity_id)
         except UnsafeIdentifier:
             self.skipped += 1
             return None
 
-        self._ensure_shard(shard_for(cleaned))
-        path = path_for(cleaned, self.root)
+        self.ids.add(cleaned)
+        payload = json.dumps(record, default=json_default, indent=self.indent)
+
+        if self.deferred is None or cleaned in self.deferred:
+            self._pending[cleaned] = payload
+        else:
+            self._write(cleaned, payload)
+        return path_for(cleaned, self.root)
+
+    def _write(self, entity_id, payload):
+        """Write one entity, skipping the write if nothing changed."""
+        path = path_for(entity_id, self.root)
+        if not self.always_write and self._read(path) == payload:
+            self.unchanged += 1
+            return
+        self._ensure_shard(shard_for(entity_id))
         with open(path, "w", encoding="utf-8") as handle:
-            json.dump(record, handle, default=json_default, indent=self.indent)
+            handle.write(payload)
         self.written += 1
-        return path
+
+    def flush(self):
+        """Write every pending entity whose content differs from disk.
+
+        Unchanged files are left completely alone, mtime included, so
+        `aws s3 sync` skips them: it decides what to upload by comparing size
+        and modification time, and rewriting an unchanged file makes it look
+        newer. Only ~0.5% of entities change status in a week, so rewriting all
+        two million meant re-uploading the whole API to publish a few thousand
+        changes.
+        """
+        for entity_id, payload in self._pending.items():
+            self._write(entity_id, payload)
+        self._pending.clear()
+
+    def _read(self, path):
+        """The file's current contents, or None if absent or unreadable."""
+        try:
+            with open(path, encoding="utf-8") as handle:
+                return handle.read()
+        except (FileNotFoundError, NotADirectoryError):
+            return None
+        except OSError:
+            # Unreadable for any other reason: treat as absent and rewrite.
+            return None
 
     def write_index(self, entity_ids, name="index.json"):
         """Write a manifest of every entity ID, for consumers that need a list."""
@@ -109,19 +180,72 @@ class Atomizer:
         return path
 
 
-def group_related(path, key_field, reader, drop_key=True):
-    """Index a related-record CSV by entity ID.
+def stale_files(root, current_ids):
+    """Entity files on disk that are no longer in the feed.
 
-    Returns {entity_id: [record, ...]}. Held in memory because the related
-    files are small next to the entity files -- Officer.csv is the largest at
-    1.2M rows -- and one pass beats re-scanning per entity.
+    Returns paths for IDs absent from `current_ids`. These are entities the SCC
+    has stopped publishing -- typically long-terminated ones purged from the
+    bulk export.
     """
-    grouped = {}
-    for record in reader:
-        entity_id = record.get(key_field)
-        if not entity_id:
+    stale = []
+    if not os.path.isdir(root):
+        return stale
+    for shard in os.listdir(root):
+        shard_path = os.path.join(root, shard)
+        if not os.path.isdir(shard_path):
             continue
-        if drop_key:
-            record = {k: v for k, v in record.items() if k != key_field}
-        grouped.setdefault(entity_id, []).append(record)
-    return grouped
+        for name in os.listdir(shard_path):
+            if not name.endswith(".json"):
+                continue
+            if name[: -len(".json")] not in current_ids:
+                stale.append(os.path.join(shard_path, name))
+    return stale
+
+
+def prune(root, current_ids):
+    """Delete entity files no longer in the feed. Returns the count removed.
+
+    Only safe to call after a complete run: with a partial one, most of the
+    corpus looks stale and this would delete the API.
+    """
+    removed = 0
+    for path in stale_files(root, current_ids):
+        try:
+            os.remove(path)
+            removed += 1
+        except OSError:
+            continue
+    return removed
+
+
+def repeated_ids(paths, id_column=0):
+    """Entity ids appearing on more than one row across the given CSVs.
+
+    A cheap first pass so `Atomizer` knows which entities need buffering. Reads
+    only the first column and holds ids, not records: about 5 seconds and ~70 MB
+    transiently for the full feed, versus ~2.2 GB to buffer every record.
+
+    Returns just the repeated ids -- roughly 1.8% of the feed, a couple of
+    megabytes -- and discards the full id set before returning.
+    """
+    seen = set()
+    repeated = set()
+    for path in paths:
+        try:
+            handle = open(path, encoding="utf-8", errors="replace", newline="")
+        except OSError:
+            continue
+        with handle:
+            reader = csv.reader(handle)
+            next(reader, None)  # header
+            for row in reader:
+                if not row:
+                    continue
+                entity_id = row[id_column].strip().lstrip("\t").strip()
+                if not entity_id:
+                    continue
+                if entity_id in seen:
+                    repeated.add(entity_id)
+                else:
+                    seen.add(entity_id)
+    return repeated

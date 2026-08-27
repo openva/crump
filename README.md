@@ -73,6 +73,48 @@ that S3 can serve with no application behind it:
 ./crump -d --publish data.vabusinesses.org
 ```
 
+### Memory
+
+Crump is built to run on a small server — peak usage is about 510 MB for the
+full pipeline, including atomizing all 2 million entities. Two things keep it
+there rather than in the gigabytes:
+
+Related records (officers, name history, amendments, mergers) go into a
+temporary SQLite index rather than a dict. Nearly two million rows in memory
+cost ~850 MB; on disk they cost almost nothing and are looked up per entity.
+
+Per-entity writes are deferred only for the ~1.8% of entities the SCC ships on
+more than one row. Those must be buffered so the last row wins deterministically;
+everything else streams straight to disk. Buffering every record instead would
+cost ~2.2 GB.
+
+### Incremental publishing
+
+Crump only rewrites a per-entity file when its contents actually change, and
+leaves unchanged files untouched — mtime included. That matters because
+`aws s3 sync` decides what to upload by comparing size and modification time, so
+a rewritten-but-identical file looks newer and uploads for nothing.
+
+Only about 0.5% of entities change status in a given week, so a weekly run
+typically rewrites a low single-digit percentage of files and the sync uploads
+only those. Each run reports the churn:
+
+```
+Per-entity JSON in output/entity/: 20,933 changed, 2,072,410 unchanged (1.00% churn)
+```
+
+Unusually high churn is flagged, since it usually means the output format
+changed rather than the data.
+
+`--prune` deletes files for entities no longer in the feed, locally and on S3
+(by adding `--delete` to the sync). It is heavily guarded: Crump cannot tell
+"the SCC removed this entity" from "the download was truncated", so pruning is
+refused after a `--limit` or `--files` run, and refused if more than
+`--prune-limit` percent of entities look stale (5% by default).
+
+`--force-rewrite` rewrites everything regardless, which is only needed if the
+output format itself changed.
+
 `--publish` publishes everything Crump produces — per-entity JSON under
 `entity/` and locality CSVs under `localities/` — so it implies `-a` and `-L`,
 and through them `-j` and `-g`. That means it needs the geocoded address cache
