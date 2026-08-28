@@ -30,7 +30,7 @@ options:
                         only process these maps, e.g. corp llc
 ```
 
-For general purposes, `./crump -dg` is the best way to invoke Crump. That downloads the current data file and attaches coordinates to every address already in the cache.
+For general purposes, `./bin/crump -dg` is the best way to invoke Crump. That downloads the current data file and attaches coordinates to every address already in the cache.
 
 ## Installation
 
@@ -70,7 +70,7 @@ Each input file has a YAML map in [`table_maps/`](table_maps/) describing its fi
 that S3 can serve with no application behind it:
 
 ```sh
-./crump -d --publish data.vabusinesses.org
+./bin/crump -d --publish data.vabusinesses.org
 ```
 
 ### Memory
@@ -162,7 +162,7 @@ So Crump determines it geometrically, by testing the geocoded coordinates
 against actual boundaries:
 
 ```sh
-./crump -dj      # download, geocode, and assign jurisdictions
+./bin/crump -dj      # download, geocode, and assign jurisdictions
 ```
 
 That adds three columns to each entity: `fips`, `jurisdiction`, and
@@ -190,7 +190,7 @@ municipal business-licensure departments checking the state's registrations
 against their own license rolls:
 
 ```sh
-./crump -dL      # download, geocode, assign jurisdictions, write locality files
+./bin/crump -dL      # download, geocode, assign jurisdictions, write locality files
 ```
 
 Files are named `<FIPS>-<Locality>.csv` — `51003-Albemarle-County.csv`,
@@ -225,7 +225,7 @@ is not evidence that a business does not exist. `-L` implies `-j`, which implies
 Add `--publish` to upload them:
 
 ```sh
-./crump -dL --publish data.vabusinesses.org    # to s3://.../localities/
+./bin/crump -dL --publish data.vabusinesses.org    # to s3://.../localities/
 ```
 
 ## A SQLite database
@@ -233,8 +233,8 @@ Add `--publish` to upload them:
 `db_load` reads the normalized CSVs and builds a single queryable database:
 
 ```sh
-./crump -dg      # download and normalize
-./db_load        # build crump.db
+./bin/crump -dg      # download and normalize
+./bin/db_load        # build crump.db
 ```
 
 The schema is generated from the field maps, so it tracks them automatically.
@@ -261,19 +261,40 @@ is not part of the build or CI — rebuild it whenever new weekly data lands.
 To publish it:
 
 ```sh
-./db_load --upload data.vabusinesses.org
+./bin/db_load --upload data.vabusinesses.org
 ```
 
 That is a deliberate, separate step. A failed upload never means rebuilding the
 database, and nothing uploads unless you ask.
+
+## Running weekly
+
+The SCC refreshes its bulk export weekly.
+[`bin/weekly`](bin/weekly) does a full update — download, normalize,
+geocode, publish — and [`deploy/crontab.example`](deploy/crontab.example)
+schedules it for 1 AM every Sunday:
+
+```cron
+0 1 * * 0    /home/ubuntu/crump/bin/weekly
+```
+
+The script logs everything to `logs/` and prints only a short summary, so what
+cron mails you is worth reading rather than two million progress characters. It
+takes a lock so a run that overruns a week cannot start a second copy on top of
+itself, and geocoding is best-effort — a third-party API failing does not fail
+the run, since whatever succeeded is cached for next time.
+
+Override the defaults with `CRUMP_BUCKET`, `CRUMP_LOG_DIR`, or `CRUMP_KEEP_LOGS`
+(days of logs to retain, default 56). See [`deploy/`](deploy/) for setup,
+including the AWS CLI concurrency setting that publishing depends on.
 
 ## Geocoding
 
 `crump -g` attaches coordinates for any address already in `addresses.db`. To geocode the addresses that aren't yet cached, run `geocode` against Crump's output:
 
 ```sh
-./geocode -i output/corp.csv              # principal office addresses
-./geocode -i output/corp.csv -p agent_    # registered agent addresses
+./bin/geocode -i output/corp.csv              # principal office addresses
+./bin/geocode -i output/corp.csv -p agent_    # registered agent addresses
 ```
 
 While it runs, `geocode` prints one character per address and a key explaining
@@ -309,7 +330,7 @@ Geocoding a million addresses one request at a time takes weeks. The `-b` flag
 sends them to the Census Bureau's batch endpoint instead, 10,000 at a time:
 
 ```sh
-./geocode -i output/corp.csv -b
+./bin/geocode -i output/corp.csv -b
 ```
 
 In testing, 1,000 addresses took about four seconds and matched 82% — the same

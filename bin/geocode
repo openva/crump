@@ -20,6 +20,13 @@ import time
 
 import requests
 
+import sys
+from pathlib import Path
+
+# Run directly from a checkout without installing: the package sits one level
+# up from bin/. A pip install takes precedence, since it is already on the path.
+sys.path.insert(1, str(Path(__file__).resolve().parent.parent))
+
 from crumplib import batch as batch_geocoder
 from crumplib.geocache import address_hash
 from crumplib.normalize import abbreviate_state, clean_text

@@ -40,6 +40,7 @@ jobs:
 
       - name: Verify the scripts run
         run: |
-          ./crump --help
-          ./geocode --help
-          ./db_load --help
+          ./bin/crump --help
+          ./bin/geocode --help
+          ./bin/db_load --help
+          bash -n bin/weekly

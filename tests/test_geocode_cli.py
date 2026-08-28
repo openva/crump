@@ -8,7 +8,7 @@ running the tool.
 import pathlib
 import re
 
-GEOCODE = pathlib.Path(__file__).resolve().parent.parent / "geocode"
+GEOCODE = pathlib.Path(__file__).resolve().parent.parent / "bin" / "geocode"
 
 
 def geocode_namespace():
@@ -17,7 +17,9 @@ def geocode_namespace():
     `geocode` is a script, not an importable module. Executing it under a name
     other than __main__ skips the entry-point guard, so nothing runs.
     """
-    namespace = {"__name__": "geocode_under_test"}
+    # __file__ is needed: the script uses it to locate crumplib when run from
+    # a checkout without installing.
+    namespace = {"__name__": "geocode_under_test", "__file__": str(GEOCODE)}
     exec(compile(GEOCODE.read_text(), str(GEOCODE), "exec"), namespace)
     return namespace
 

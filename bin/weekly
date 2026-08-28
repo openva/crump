@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# Crump's weekly update: fetch the current SCC data, normalize it, geocode what
+# it can, and publish.
+#
+# Run from cron; see crontab.example. Everything is logged, and only failures
+# and a short summary reach stdout, so cron's mail is worth reading.
+#
+#     https://github.com/openva/crump/
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# Work from the repository root so relative paths (data/, output/, logs/) land
+# where they belong, but invoke the CLIs by absolute path from bin/.
+BIN="$(dirname "$(readlink -f "$0")")"
+cd "$BIN/.."
+
+BUCKET="${CRUMP_BUCKET:-data.vabusinesses.org}"
+LOG_DIR="${CRUMP_LOG_DIR:-logs}"
+LOG="$LOG_DIR/weekly-$(date +%Y-%m-%d).log"
+KEEP_LOGS="${CRUMP_KEEP_LOGS:-56}"
+
+mkdir -p "$LOG_DIR"
+
+# Everything goes to the log; only what we deliberately echo goes to cron.
+exec 3>&1
+log() {
+    printf '\n=== %s: %s ===\n' "$(date +%H:%M:%S)" "$1" >> "$LOG"
+}
+fail() {
+    echo "Crump weekly FAILED at: $1" >&3
+    echo "  See $(pwd)/$LOG" >&3
+    exit 1
+}
+
+started=$(date +%s)
+echo "Crump weekly run, $(date)" > "$LOG"
+
+# Refuse to start a second run on top of a running one. A weekly job that
+# overruns a week is a problem to report, not to compound. flock is standard on
+# Linux; elsewhere (a Mac used for development) we simply skip the guard.
+if command -v flock > /dev/null; then
+    exec 9> "$LOG_DIR/.lock"
+    if ! flock --nonblock 9; then
+        echo "Crump weekly SKIPPED: a previous run is still going" >&3
+        exit 1
+    fi
+fi
+
+log "Downloading and normalizing"
+"$BIN/crump" -d -a -L --publish "$BUCKET" >> "$LOG" 2>&1 || fail "crump"
+
+log "Building the database"
+"$BIN/db_load" --upload "$BUCKET" >> "$LOG" 2>&1 || fail "db_load"
+
+# Geocoding is best-effort: the APIs are third-party and a failure there should
+# not fail the run. Whatever succeeds is cached for next week.
+log "Geocoding new addresses (batch)"
+for stem in corp llc lp gp bt psa; do
+    if [ -f "output/$stem.csv" ]; then
+        "$BIN/geocode" -i "output/$stem.csv" -b >> "$LOG" 2>&1 \
+            || echo "  note: geocoding $stem stopped early" >> "$LOG"
+    fi
+done
+
+elapsed=$(( $(date +%s) - started ))
+log "Done in $((elapsed / 60))m $((elapsed % 60))s"
+
+# Prune old logs so this does not grow without bound.
+find "$LOG_DIR" -name 'weekly-*.log' -type f -mtime "+$KEEP_LOGS" -delete 2>/dev/null || true
+
+# The summary cron will mail: enough to know it worked without reading the log.
+{
+    echo "Crump weekly run finished in $((elapsed / 60))m $((elapsed % 60))s"
+    grep -E 'churn|records to|businesses across|Loaded .* rows|geocoded,' "$LOG" \
+        | sed 's/^/  /' || true
+} >&3
