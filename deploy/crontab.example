@@ -1,0 +1,25 @@
+# Crump: weekly update of Virginia SCC business records.
+#
+# Install with:
+#     crontab -e
+# then paste the lines below, adjusting the path to the checkout.
+#
+# No `cd` is needed: the script locates the repository relative to itself.
+#
+# The SCC refreshes its bulk export weekly, so this runs early Sunday morning
+# and is done well before the working week.
+
+# Cron runs with a minimal environment; without this, `aws` and `python3` may
+# not be found even though they work in an interactive shell.
+PATH=/usr/local/bin:/usr/bin:/bin
+SHELL=/bin/bash
+
+# Where failures and the run summary are mailed. Leave blank to disable mail.
+MAILTO=waldo@example.com
+
+# Update the records: download, normalize, geocode, publish.
+# min hour day month weekday
+    0    1   *    *      0     /home/ubuntu/crump/bin/weekly
+
+# bin/weekly logs everything to logs/ and prints only a short summary, so the
+# mail cron sends is worth reading rather than 2 million progress characters.

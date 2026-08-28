@@ -1,0 +1,20 @@
+# AWS CLI settings for publishing Crump's output.
+#
+# Append to ~/.aws/config on the machine that runs the weekly job.
+#
+# The concurrency setting is the important one. Crump publishes about two
+# million files averaging 4 KB, so uploads are latency-bound rather than
+# bandwidth-bound: at gigabit the bytes themselves would move in about a
+# minute, but every file costs a round trip. The AWS CLI defaults to 10
+# concurrent requests, which caps throughput near 700 uploads a second no
+# matter how much bandwidth is available.
+#
+# 200 is a reasonable starting point. Raise it if the machine is idle during
+# uploads; lower it if the CLI's own CPU becomes the bottleneck, since it is
+# single-process Python and request signing is not free.
+
+[default]
+region = us-east-1
+s3 =
+    max_concurrent_requests = 200
+    max_queue_size = 10000
