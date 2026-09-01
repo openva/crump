@@ -615,3 +615,350 @@ derived artifact, rebuilt when new weekly data lands.
   `DISTINCT` for one row per entity.
 - `--append` adds to existing tables instead of replacing them; the default
   replaces, so a re-run is repeatable rather than accumulating duplicates.
+
+---
+
+## Phase 9 — Jurisdiction / FIPS assignment — COMPLETE
+
+Assign every Virginia business to the county or independent city it physically
+sits in, by point-in-polygon against Census boundaries.
+
+**Scope (set 2026-08-25):** principal office address only — not registered
+agents. Annexations explicitly out of scope; Virginia boundaries are stable
+enough that a pinned 2023 vintage is fine.
+
+### Why the address cannot answer this
+
+Measured against real geocoded data, not assumed:
+
+| Mailing city | Actually falls in |
+|---|---|
+| Charlottesville | Albemarle County 161 · Charlottesville city 139 |
+| Lexington | Rockbridge County 166 · Lexington city 134 |
+| Richmond | Richmond city 158 · Chesterfield 88 · Henrico 54 |
+
+A "Charlottesville" address is in Charlottesville city only **46%** of the time.
+Across a full run, **42% of businesses have a mailing city that differs from
+their jurisdiction** — many name places that are not jurisdictions at all
+(Midlothian → Chesterfield County; Mechanicsville → Hanover County).
+And Richmond city (51760) vs Richmond County (51159) makes the name genuinely
+ambiguous.
+
+- [x] **`crumplib/jurisdiction.py`** — bbox-prefiltered ray-casting
+      point-in-polygon, pure stdlib. A geospatial stack (GEOS/shapely/fiona)
+      would dwarf Crump's entire dependency footprint for one lookup.
+      Measured ~2,500 lookups/sec; adds ~90 s to a full run.
+- [x] **Boundary data shipped in `boundaries/`** — Census TIGERweb State_County
+      layer, 2023 vintage, Virginia only. Trimmed to 5-decimal precision (~1 m,
+      far finer than county lines need): 21.5 MB → **2.59 MB gzipped**, small
+      enough to commit so runs are offline and reproducible.
+- [x] **133 jurisdictions: 95 counties + 38 independent cities**, verified
+      against the Census national county file.
+- [x] **Three derived fields** on the six entity maps: `fips`, `jurisdiction`,
+      `jurisdiction_type`. Map-driven, so they flow automatically into CSV,
+      JSON, per-entity files, and SQLite.
+- [x] **`fips` and `jurisdiction` indexed in SQLite.** "Every business in
+      Fairfax County" returns in ~4 ms against 4.1 M rows.
+- [x] **`-j` implies `-g`** — jurisdiction is derived from coordinates.
+- [x] **30 new tests**; **212 passing** overall. An existing map test caught the
+      new `derived: jurisdiction` type before it shipped, which is the schema
+      guard working as intended.
+
+### Full-scale results
+
+| Metric | Count |
+|---|---|
+| Entity rows | 2,093,343 |
+| VA principal address | 1,820,556 (87.0%) |
+| Geocoded | 663,804 (31.7%) |
+| **FIPS assigned** | **527,721 (25.2%)** |
+| Of geocoded rows | 79.5% |
+
+All **133 of 133** jurisdictions appear. Distribution matches Virginia's
+economic geography: Fairfax County 91,566 · Virginia Beach 45,785 · Henrico
+41,705; rarest are Highland 121 and Craig 99.
+
+The 20.5% of geocoded rows without a FIPS were checked, not assumed: they are
+out-of-state businesses (Maryland, California, Texas), which correctly have no
+Virginia jurisdiction.
+
+### The ceiling
+
+- [ ] **Coverage is limited by geocoding, not by this feature.** 87% of entities
+      have Virginia addresses but only 31.7% have coordinates, so only 25.2% can
+      be placed. **Completing the geocode backfill is what raises FIPS coverage**
+      — the two are the same project. Every point geocoded from here on gets a
+      jurisdiction for free on the next run.
+- [ ] **Consider `returntype=geographies` on the Census batch endpoint.** It
+      returns state and county FIPS as extra columns during geocoding, at no
+      extra request cost (verified live). Useful as a cross-check against local
+      point-in-polygon — disagreement flags a bad geocode — though it cannot
+      help VGIN-geocoded Virginia addresses, which is most of them.
+
+---
+
+## Phase 10 — Per-locality business lists — COMPLETE
+
+One CSV per Virginia county and independent city, for municipal business-licensure
+departments checking state registrations against their own license rolls.
+
+**Decisions (2026-08-26):**
+- [x] **All statuses included**, with a `status` column — a department filters for
+      itself. 58% of placed businesses are INACTIVE; an entity terminated last
+      year may still owe a licence for the year it operated.
+- [x] **Filenames keep the type suffix** — `51059-Fairfax-County.csv` vs
+      `51600-Fairfax-city.csv`. Four names (Fairfax, Franklin, Richmond, Roanoke)
+      belong to *both* a county and an independent city, so dropping the suffix
+      would put visually identical names in a directory listing.
+- [x] **Columns**: id, entity_type, name, status, status_reason, status_date,
+      incorporation_date, street_1/2, city, state, zip, latitude, longitude.
+      Registered agents and officers deliberately excluded — an agent is usually
+      a law firm at an address unrelated to where the business operates.
+- [x] **No README shipped** alongside the CSVs, by decision.
+
+- [x] **`crumplib/localities.py` + `crump -L`.** `-L` implies `-j` implies `-g`.
+      Files stay open for the run (133 handles, well under any limit); records
+      arrive interleaved across entity types, so append-as-you-go is the only
+      single-pass option.
+- [x] **Full-scale verified**: **561,751 businesses across 133 files, 100.3 MB**,
+      in 5m26s. Largest Fairfax County 97,923; smallest Highland County 127.
+- [x] **28 new tests**; **236 passing** overall.
+
+### A finding worth keeping
+
+156 rows (0.028%) have a non-Virginia `state` value despite falling inside a
+Virginia boundary — e.g. an Arlington street address, ZIP 22203, Arlington
+coordinates, and "Alabama" typed in the state field. **153 of the 156 carry a
+Virginia ZIP.** These are SCC data-entry errors, and the geometric approach
+placed them correctly *despite* the bad field, where any state-field filter
+would have dropped them. Further evidence for deriving jurisdiction from
+coordinates rather than address text.
+
+### Open
+
+- [x] **Coverage caveat: handled outside Crump** (confirmed 2026-08-26). A
+      business only appears if its address could be geocoded, so a locality file
+      is not a complete roster and absence is not evidence a business does not
+      exist. That caveat is stated on the public download page, which lives in a
+      separate project — Crump produces files, not a website. **No caveat file
+      or README ships with the CSVs, and this is settled, not deferred.**
+- [x] **Publishing wired up** (2026-08-26). `--publish` now uploads whatever the
+      run generated rather than only atomized JSON:
+      | Artifact | Prefix | Content-Type |
+      |---|---|---|
+      | per-entity JSON (`-a`) | `entity/` | `application/json` |
+      | locality CSVs (`-L`) | `localities/` | `text/csv` |
+      `sync_command()` gained an `include` parameter so each artifact uploads
+      only its own file type — stray local files still cannot reach the bucket.
+      **`--publish` implies both `-a` and `-L`** (changed 2026-08-26): it means
+      "publish everything Crump produces". Note this transitively enables `-j`
+      and `-g`, so a bare `--publish` needs `addresses.db` and costs a couple of
+      extra minutes; the implication is printed at the start of the run rather
+      than applied silently. If the cache is missing, locality generation yields
+      nothing and Crump says so explicitly instead of reporting a successful
+      zero-file sync that would leave stale files on S3.
+      Prefixes are overridable via `--publish-prefix` / `--localities-prefix`.
+      Verified with dry runs against `data.vabusinesses.org`.
+
+---
+
+## Phase 11 — Incremental publishing — COMPLETE
+
+`aws s3 sync` was re-uploading all 2,093,343 per-entity files every week to
+publish a few thousand changes. Steps 1, 3 and 4 of the proposal were
+implemented; step 2 (locality CSVs) was skipped by decision.
+
+### Diagnosis
+
+Files average **4 KB**, so at gigabit the *bytes* would move in ~1.1 minutes —
+this was never bandwidth-bound. Two separate causes:
+
+1. **The AWS CLI default is `max_concurrent_requests = 10`.** At a measured 15 ms
+   RTT to us-east-1 that caps throughput near 667 PUT/s regardless of bandwidth.
+   Config-only fix, no code: set 100–200 in `~/.aws/config`.
+2. **Crump rewrote every file every run.** Content was byte-identical but every
+   mtime changed, and sync compares size + mtime — so everything looked newer.
+
+### Churn, measured
+
+`status_date` shows **355,749 entities changed status in 2026 across ~34 weeks —
+about 10,463/week, or 0.50%.** Allowing for new registrations, address changes
+and newly-geocoded addresses, 1–3% is a fair upper bound: **~20–60k files a week
+instead of 2 million.**
+
+- [x] **Content-aware writes.** `Atomizer` compares the serialized record
+      against the file on disk and skips identical ones, leaving mtime intact.
+- [x] **Writes deferred to `flush()`.** This was the subtle part. The SCC ships
+      several rows per entity when agent/merger history differs, so writing as
+      rows arrived let an *intermediate* row hit disk — and which one won varied
+      between runs. Result: **460 files oscillated on every run forever**,
+      re-uploading indefinitely. Buffering each entity's final content and
+      writing once at the end fixed it. Verified: **0.00% churn, 0 files
+      differing, stable across three consecutive runs.**
+- [x] **Guarded `--prune`** (step 3). Deletes entity files absent from the feed,
+      locally and via `--delete` on the sync. Crump cannot distinguish "the SCC
+      removed this" from "the download truncated", so pruning is refused after a
+      `--limit` or `--files` run, and refused when more than `--prune-limit`
+      percent look stale (5% default). Both guards verified: it declined a
+      limited run, pruned one genuinely stale file, and **refused a 150,000-file
+      injection at 6.8% with an explanatory message.**
+- [x] **Churn reporting** (step 4): `20,933 changed, 2,072,410 unchanged (1.00%
+      churn)`, with a warning above 50% since that signals a format change
+      rather than real data movement.
+- [x] **`--force-rewrite`** for when the output format genuinely changes.
+- [x] **19 new tests**; **254 passing** overall.
+
+### Full-scale results
+
+| | Before | After |
+|---|---|---|
+| Files rewritten (unchanged data) | 2,093,343 | **0** |
+| Churn reported | — | **0.00%** |
+| Run time | 203 s | 178 s (cold) / 187 s (steady) |
+
+### Memory: fixed (2026-08-27)
+
+The first implementation peaked at **2.70 GB**, which I wrongly called "fine on
+the Ubuntu server" without checking — the server has **1 GB RAM + 1 GB swap**, so
+it would have thrashed or OOMed. Two separate consumers, both now fixed:
+
+| Configuration | Peak RSS |
+|---|---|
+| baseline, no atomize | 0.04 GB |
+| atomize, buffer-everything (first attempt) | **2.70 GB** |
+| atomize, deferred buffering only | 1.12 GB |
+| + related records on disk | **0.31 GB** |
+| **full pipeline (`-a -L`, CSV + JSON)** | **0.51 GB** |
+
+- [x] **Deferred buffering.** A 5-second pre-pass (`repeated_ids()`) reads just
+      the ID column to find the **36,658 entities (1.8%)** that appear on more
+      than one source row. Only those are buffered — the rest stream straight to
+      disk. Preserves the last-row-wins determinism that stopped the 460-file
+      oscillation. 2.2 GB → 0.23 GB.
+- [x] **Related records moved to a temporary SQLite index**
+      (`crumplib/related.py`). The four files total ~1.95 M rows and cost
+      ~850 MB as a dict. Batched inserts, index built after loading, one
+      indexed query per entity. Temp file deleted on close; verified no
+      leftovers. Costs ~169 MB of disk for Officer.csv.
+      `group_related()` deleted as dead code.
+- [x] **Verified**: 0.00% churn on a rerun of all 2,049,921 files, and output
+      byte-identical to the in-memory version (spot-checked a document with 326
+      nested related records).
+- [x] **Audited the other tools** rather than assuming: `db_load` batches 10,000
+      rows and only holds per-table column lists; `geocode -b` peaks at **219 MB**
+      on the largest file (771,923 pending addresses). Both fit.
+
+### Still config, not code
+
+- [ ] **Raise `max_concurrent_requests`** in `~/.aws/config` to 100–200. This is
+      the other half of the speedup and needs no code change:
+      ```ini
+      [default]
+      s3 =
+          max_concurrent_requests = 200
+          max_queue_size = 10000
+      ```
+      Also worth evaluating `s5cmd`, a Go client typically several times faster
+      than the Python CLI on small-object workloads.
+
+---
+
+## Phase 12 — Weekly scheduling — COMPLETE
+
+- [x] **`bin/weekly`** — wrapper doing the full update: `crump -d -a -L --publish`,
+      then `db_load --upload`, then batch geocoding of each entity file.
+- [x] **`deploy/crontab.example`** — `0 1 * * 0`, i.e. **1 AM every Sunday**. Verified
+      the field order and that cron weekday 0 is Sunday; next firings land on
+      2026-08-30, 09-06, 09-13.
+- [x] **Quiet by default.** Crump prints a per-address progress character, so a
+      naive cron job would mail two million characters weekly. The script logs
+      everything to `logs/weekly-<date>.log` and echoes only a summary plus any
+      failure, via a saved file descriptor.
+- [x] **Layout settled (2026-08-27).** First attempt put `weekly` in `deploy/`,
+      which conflated two different things: `deploy/` is what you install once,
+      whereas `weekly` runs every week forever. Final split:
+      | | |
+      |---|---|
+      | `bin/` | `crump`, `geocode`, `db_load`, `weekly` — the executables |
+      | `deploy/` | `crontab.example`, `aws-config.example`, `README.md` — install-time config |
+      Consequences handled: the CLIs gained a small `sys.path` bootstrap so they
+      still run from a checkout without `pip install`; `weekly` invokes them by
+      absolute path from `$BIN` while working from the repo root; CI, the main
+      README, the crontab, and `tests/test_geocode_cli.py` all updated. The test
+      loader now supplies `__file__`, which the bootstrap needs.
+- [x] **`deploy/aws-config.example`** — the `max_concurrent_requests = 200`
+      setting that publishing depends on, which until now existed only in
+      conversation.
+- [x] **`deploy/README.md`** — setup, resource requirements (~510 MB peak
+      memory, ~10 GB disk), and what to do when a run fails.
+- [x] **Locked.** `flock` prevents a second run starting on top of one that
+      overran; skipped gracefully where `flock` is absent (macOS development).
+- [x] **Geocoding is best-effort** — a third-party API failure is noted in the
+      log but does not fail the run, since successful geocodes are already
+      cached for next week.
+- [x] **Log rotation** — logs older than `CRUMP_KEEP_LOGS` days (default 56) are
+      deleted, so `logs/` cannot grow without bound.
+- [x] **Explicit `PATH`** in the crontab: cron's minimal environment otherwise
+      fails to find `aws` and `python3` even when an interactive shell finds
+      them. This is the most common reason a working command fails under cron.
+
+### Not verified end-to-end
+
+- [ ] The wrapper has not been run start-to-finish; only its syntax and the cron
+      schedule were checked. The first real Sunday run is the test. If it fails,
+      `logs/weekly-<date>.log` holds the full output and the cron mail names the
+      step that failed.
+
+---
+
+## Phase 13 — OOM on the 1 GB server (2026-08-31)
+
+The first real weekly run was **Killed** by the OOM killer, during
+`ReservedName.csv`. My earlier "510 MB peak" was measured on a Mac with tens of
+gigabytes free, where nothing forces the issue.
+
+Measured the components directly with `tracemalloc` rather than inferring from
+RSS, which is what I should have done the first time:
+
+| Component | Cost |
+|---|---|
+| `repeated_ids()` pre-pass | **172 MB peak** (transient) |
+| `GeocodeCache` preload | **104 MB**, and grows with every geocode |
+| `JurisdictionIndex` | **76 MB** |
+| Python, buffers, everything else | ~110 MB |
+
+No single bug — four things stacking, plus `--publish` capturing two million
+lines of `aws s3 sync` output on top.
+
+- [x] **Geocode cache preload is now opt-in.** It loaded every address hash into
+      a set to skip a SQL round trip. Measured: 104 MB for 3.5x faster lookups
+      (72,700/s vs 21,000/s). At 21,000/s the SQL path costs about three extra
+      minutes on a full run — a good trade against an OOM. Also note the cost
+      *grows*: it was 30 MB when written, 104 MB now, and rising with every
+      address geocoded.
+- [x] **`repeated_ids()` stores fingerprints, not strings.** 172 MB → 150 MB.
+      A hash collision would only mean an entity is buffered unnecessarily,
+      which is harmless.
+- [x] **`aws s3 sync` output is streamed, not captured.** `capture_output=True`
+      buffered a line per object: ~260 MB for two million files, arriving right
+      at peak. Now keeps only the last 20 lines, which is all that was ever
+      displayed.
+- [x] **Entity ids are only retained when `--prune` needs them** (~170 MB).
+- [x] **Result: 474 MB → 314 MB peak**, comfortably inside 1 GB.
+
+### What I got wrong
+
+- I reported "510 MB, fine on a 1 GB server" from a macOS measurement, having
+  earlier been told the server has 1 GB RAM and 1 GB swap. A number measured
+  where nothing constrains it is not evidence about a constrained machine.
+- My first diagnosis this round (entity ids) saved 10 MB of the 160 needed. I
+  should have measured the components before changing anything.
+
+### Still to watch
+
+- [ ] **The geocode cache set grows with the corpus.** Preload is off now, so
+      this is bounded — but `GeocodeCache` is still constructed per run and
+      SQLite's page cache will grow. Worth re-measuring after the backfill
+      finishes.
+- [ ] **Peak is 314 MB against 1 GB.** Comfortable, not luxurious. Adding
+      another in-memory index would need measuring first, on the server.
