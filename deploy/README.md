@@ -16,15 +16,49 @@ executables — it runs every week, rather than at deploy time.
 ```sh
 git clone https://github.com/openva/crump.git
 cd crump
-pip install -e .
+
+# Crump needs only PyYAML and requests, both packaged by Debian and Ubuntu.
+sudo apt install python3-yaml python3-requests
+
+aws s3 cp s3://data.vabusinesses.org/addresses.db .
 
 cat deploy/aws-config.example >> ~/.aws/config   # then edit as needed
 crontab -e                                       # paste crontab.example
+
+./bin/weekly                                     # first run, by hand
 ```
 
-The weekly job needs `addresses.db` present to geocode and assign
-jurisdictions. Without it, Crump still runs but produces no coordinates, no
-FIPS codes, and no locality files.
+There is no install step: the scripts in `bin/` locate the `crumplib` package
+relative to themselves, so a clone runs as-is.
+
+Do not skip `addresses.db`. Everything else rebuilds from the SCC feed, but that
+file holds years of accumulated geocoding — without it Crump still runs, and
+produces no coordinates, no FIPS codes, and no locality files.
+
+### Why apt rather than pip
+
+On Ubuntu 24.04 and other PEP 668 systems, `pip install` into the system Python
+fails with `externally-managed-environment`. That is deliberate: pip and apt
+would otherwise fight over the same files. Installing the two dependencies from
+apt sidesteps it entirely.
+
+`--break-system-packages` also works, and is a bad idea on a server running an
+unattended job — it lets pip write into a Python that apt also manages.
+
+### If you want a virtual environment instead
+
+Needed only to run the test suite, which wants dev dependencies apt does not
+package:
+
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -e '.[dev]'
+.venv/bin/pytest
+```
+
+A venv does not change how `bin/weekly` runs, since the scripts find `crumplib`
+themselves. But if you want the cron job to use the venv's interpreter, invoke
+the scripts through it explicitly — cron will not activate it for you.
 
 ## What the weekly run does
 

@@ -34,11 +34,25 @@ For general purposes, `./bin/crump -dg` is the best way to invoke Crump. That do
 
 ## Installation
 
+Crump needs Python 3.12 or newer and two libraries. There is no install step —
+the scripts in `bin/` find the `crumplib` package relative to themselves, so a
+clone runs as-is.
+
+On Debian or Ubuntu:
+
+```sh
+sudo apt install python3-yaml python3-requests
+```
+
+Elsewhere, or in a virtual environment:
+
 ```sh
 pip install -r requirements.txt
 ```
 
-Requires Python 3.11 or newer.
+Note that `pip install` into the system Python fails on Ubuntu 24.04 and other
+PEP 668 systems with `externally-managed-environment`. Use apt, or a virtual
+environment. See [`deploy/`](deploy/) for server setup.
 
 ## The data
 
@@ -353,7 +367,9 @@ and they would otherwise consume batch capacity.
 ## Development
 
 ```sh
-pip install -e '.[dev]'   # the package plus pytest and ruff
+python3 -m venv .venv                    # PEP 668 systems require one
+.venv/bin/pip install -e '.[dev]'        # the package plus pytest and ruff
+source .venv/bin/activate
 
 pytest                  # tests
 ruff check .            # lint
