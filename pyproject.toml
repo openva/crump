@@ -25,6 +25,11 @@ packages = ["crumplib"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Put the repository root on sys.path so the tests import crumplib without the
+# package being installed. Crump is run from a checkout -- the scripts in bin/
+# do the same thing for themselves -- and on PEP 668 systems like Ubuntu 24.04
+# `pip install -e .` into the system Python is refused outright.
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 88

@@ -45,20 +45,26 @@ apt sidesteps it entirely.
 `--break-system-packages` also works, and is a bad idea on a server running an
 unattended job — it lets pip write into a Python that apt also manages.
 
-### If you want a virtual environment instead
+### Running the tests
 
-Needed only to run the test suite, which wants dev dependencies apt does not
-package:
+```sh
+sudo apt install python3-pytest
+cd /home/ubuntu/crump && pytest
+```
+
+Run from the repository root: the tests read `table_maps/` by relative path.
+No install is needed — `pyproject.toml` puts the root on `sys.path`.
+
+A virtual environment also works, and is the only way to get `ruff`, which apt
+does not package:
 
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
-.venv/bin/pytest
 ```
 
-A venv does not change how `bin/weekly` runs, since the scripts find `crumplib`
-themselves. But if you want the cron job to use the venv's interpreter, invoke
-the scripts through it explicitly — cron will not activate it for you.
+It does not change how `bin/weekly` runs, since the scripts find `crumplib`
+themselves.
 
 ## What the weekly run does
 

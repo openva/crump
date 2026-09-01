@@ -367,11 +367,11 @@ and they would otherwise consume batch capacity.
 ## Development
 
 ```sh
-python3 -m venv .venv                    # PEP 668 systems require one
-.venv/bin/pip install -e '.[dev]'        # the package plus pytest and ruff
+python3 -m venv .venv                    # PEP 668 systems require one for pip
+.venv/bin/pip install -e '.[dev]'        # pytest and ruff
 source .venv/bin/activate
 
-pytest                  # tests
+pytest                  # tests (no install needed; run from the repo root)
 ruff check .            # lint
 ruff format .           # apply formatting
 ruff format --check .   # what CI enforces

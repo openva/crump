@@ -67,6 +67,18 @@ class TestPackaging:
         assert target == "py" + version.replace(".", "")
 
 
+class TestPytestConfiguration:
+    def test_repository_root_is_on_the_path(self):
+        """The tests import crumplib, and Crump is run from a checkout.
+
+        Without this, `pytest` fails to collect anything unless the package has
+        been pip-installed -- which PEP 668 systems like Ubuntu 24.04 refuse for
+        the system Python.
+        """
+        config = pyproject()["tool"]["pytest"]["ini_options"]
+        assert "." in config["pythonpath"]
+
+
 class TestImportability:
     """The bug this suite originally missed: `crumplib` was importable only from
     the repo root, because nothing installed it. Every test passed locally and
