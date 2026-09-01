@@ -80,7 +80,9 @@ class Atomizer:
     history, and so on) are attached before the record arrives here.
     """
 
-    def __init__(self, root, indent=None, always_write=False, deferred=None):
+    def __init__(
+        self, root, indent=None, always_write=False, deferred=None, track_ids=False
+    ):
         self.root = root
         self.indent = indent
         #: Set to bypass the content check, e.g. to force a full rewrite.
@@ -90,6 +92,9 @@ class Atomizer:
         #: arrives. Pass `None` to buffer everything, which is correct but
         #: needs ~2.2 GB for the full feed.
         self.deferred = deferred
+        #: Only collected when --prune needs them: retaining every id costs
+        #: ~170 MB for the full feed, which matters on a small server.
+        self.track_ids = track_ids
         self.written = 0
         self.unchanged = 0
         self.skipped = 0
@@ -122,7 +127,8 @@ class Atomizer:
             self.skipped += 1
             return None
 
-        self.ids.add(cleaned)
+        if self.track_ids:
+            self.ids.add(cleaned)
         payload = json.dumps(record, default=json_default, indent=self.indent)
 
         if self.deferred is None or cleaned in self.deferred:
@@ -228,6 +234,10 @@ def repeated_ids(paths, id_column=0):
     Returns just the repeated ids -- roughly 1.8% of the feed, a couple of
     megabytes -- and discards the full id set before returning.
     """
+    # Holding every id costs ~170 MB on the full feed. Hash them into fixed-width
+    # ints instead: same duplicate detection, a fraction of the memory, and the
+    # occasional hash collision only means an entity is buffered unnecessarily --
+    # which is harmless, since buffering is the safe behaviour.
     seen = set()
     repeated = set()
     for path in paths:
@@ -244,8 +254,9 @@ def repeated_ids(paths, id_column=0):
                 entity_id = row[id_column].strip().lstrip("\t").strip()
                 if not entity_id:
                     continue
-                if entity_id in seen:
+                fingerprint = hash(entity_id)
+                if fingerprint in seen:
                     repeated.add(entity_id)
                 else:
-                    seen.add(entity_id)
+                    seen.add(fingerprint)
     return repeated

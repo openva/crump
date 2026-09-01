@@ -47,12 +47,13 @@ def address_hash(street_1, street_2, city, state, zip_code):
 class GeocodeCache:
     """Read-only lookups against addresses.db.
 
-    Loads all hashes into memory when `preload` is set: with millions of
-    lookups against a ~565k-row table, one 30 MB set beats a SQL round trip per
-    address.
+    `preload` pulls every hash into a set to skip a SQL round trip per lookup.
+    It is off by default: the set costs over 100 MB once the cache passes a
+    million rows, which is real money on a small server, and SQLite's own page
+    cache makes the indexed lookup fast enough without it.
     """
 
-    def __init__(self, path="addresses.db", preload=True):
+    def __init__(self, path="addresses.db", preload=False):
         self.path = path
         self._connection = None
         self._hashes = None

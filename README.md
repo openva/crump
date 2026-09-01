@@ -75,7 +75,7 @@ that S3 can serve with no application behind it:
 
 ### Memory
 
-Crump is built to run on a small server — peak usage is about 510 MB for the
+Crump is built to run on a small server — peak usage is about 315 MB for the
 full pipeline, including atomizing all 2 million entities. Two things keep it
 there rather than in the gigabytes:
 

@@ -195,10 +195,16 @@ class TestContentAwareWrites:
         assert (forced.written, forced.unchanged) == (1, 0)
 
     def test_ids_are_tracked_for_pruning(self, tmp_path):
-        subject = Atomizer(str(tmp_path))
+        """Opt-in: retaining every id costs ~170 MB on the full feed."""
+        subject = Atomizer(str(tmp_path), track_ids=True)
         subject.write("00000307", {})
         subject.write("00000308", {})
         assert subject.ids == {"00000307", "00000308"}
+
+    def test_ids_are_not_tracked_by_default(self, tmp_path):
+        subject = Atomizer(str(tmp_path))
+        subject.write("00000307", {})
+        assert subject.ids == set()
 
 
 class TestPruning:

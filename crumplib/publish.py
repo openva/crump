@@ -73,18 +73,56 @@ def sync_command(
     return command
 
 
+#: How many lines of `aws s3 sync` output to keep. It prints one line per
+#: object, and with two million objects capturing all of it costs hundreds of
+#: megabytes -- enough to push a small server into the OOM killer. Only the
+#: tail is ever shown, so only the tail is kept.
+OUTPUT_TAIL_LINES = 20
+
+
 def sync(source, bucket, prefix="", **kwargs):
-    """Publish a directory of entity JSON to S3. Returns the CLI output."""
+    """Publish a directory to S3. Returns the tail of the CLI output.
+
+    Streams rather than buffering: `aws s3 sync` emits a line per object, and
+    capturing two million of them would cost more memory than the rest of
+    Crump put together.
+    """
     if not aws_available():
         raise PublishError("the AWS CLI is not installed; install it or sync manually")
     command = sync_command(source, bucket, prefix, **kwargs)
-    try:
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as error:
+    return _run_streaming(command, "aws s3 sync")
+
+
+def _run_streaming(command, label):
+    """Run a command, keeping only the tail of its output.
+
+    Returns the last OUTPUT_TAIL_LINES lines, and the total line count, as a
+    single string. Raises PublishError on a non-zero exit.
+    """
+    from collections import deque
+
+    tail = deque(maxlen=OUTPUT_TAIL_LINES)
+    lines = 0
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    for line in process.stdout:
+        stripped = line.rstrip()
+        if stripped:
+            tail.append(stripped)
+            lines += 1
+    process.wait()
+
+    if process.returncode != 0:
         raise PublishError(
-            f"aws s3 sync failed ({error.returncode}): {error.stderr.strip()}"
-        ) from error
-    return result.stdout
+            f"{label} failed ({process.returncode}): " + " / ".join(list(tail)[-3:])
+        )
+
+    return "\n".join(tail)
 
 
 def upload_command(path, bucket, key, content_type=None, dry_run=False):
@@ -118,10 +156,4 @@ def upload_file(path, bucket, key, content_type=None, dry_run=False):
     command = upload_command(
         path, bucket, key, content_type=content_type, dry_run=dry_run
     )
-    try:
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as error:
-        raise PublishError(
-            f"aws s3 cp failed ({error.returncode}): {error.stderr.strip()}"
-        ) from error
-    return result.stdout
+    return _run_streaming(command, "aws s3 cp")

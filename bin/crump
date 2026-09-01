@@ -13,8 +13,6 @@ import argparse
 import csv
 import os
 import sys
-
-import sys
 from pathlib import Path
 
 # Run directly from a checkout without installing: the package sits one level
@@ -482,6 +480,8 @@ def main(argv=None):
                 indent=options.atomize_indent,
                 always_write=options.force_rewrite,
                 deferred=deferred,
+                # Retaining every entity id costs ~170 MB; only --prune needs it.
+                track_ids=options.prune,
             )
 
         print(f"Processing {field_map.csv_name}", end="", flush=True)
@@ -501,7 +501,8 @@ def main(argv=None):
             atomizer_stats["written"] += atomizer.written
             atomizer_stats["unchanged"] += atomizer.unchanged
             atomizer_stats["skipped"] += atomizer.skipped
-            atomizer_ids.update(atomizer.ids)
+            if options.prune:
+                atomizer_ids.update(atomizer.ids)
             print(
                 f" -> {human(written)} records, "
                 f"{human(atomizer.written)} changed, "

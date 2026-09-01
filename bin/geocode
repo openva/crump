@@ -20,7 +20,6 @@ import time
 
 import requests
 
-import sys
 from pathlib import Path
 
 # Run directly from a checkout without installing: the package sits one level

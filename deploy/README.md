@@ -39,7 +39,7 @@ failure go to stdout, which is what cron mails.
 
 ## Requirements
 
-Modest. Peak memory is about 510 MB, so a 1 GB server is enough. Disk is the
+Modest. Peak memory is about 315 MB, so a 1 GB server is enough. Disk is the
 larger need: roughly 1 GB for the extracted CSVs, 8 GB for the per-entity JSON,
 1.2 GB for the database, and 100 MB for the locality files.
 
