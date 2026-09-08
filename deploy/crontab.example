@@ -18,8 +18,7 @@ SHELL=/bin/bash
 MAILTO=waldo@example.com
 
 # Update the records: download, normalize, geocode, publish.
-# min hour day month weekday
-    0    1   *    *      0     /home/ubuntu/crump/bin/weekly
+0 22 * * 6 /home/ubuntu/crump/bin/weekly
 
 # bin/weekly logs everything to logs/ and prints only a short summary, so the
 # mail cron sends is worth reading rather than 2 million progress characters.
