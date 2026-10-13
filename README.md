@@ -320,6 +320,12 @@ them:
 
 Use `-v` for a line of detail per address instead.
 
+Coordinates are stored rounded to five decimal places, about one metre, which
+is as much as the geocoders' data can support. Addresses cached before that
+change keep their original precision until `ROUND_ON_READ` is switched on in
+`crumplib/geocache.py`; doing so rewrites every geocoded entity file, so save
+it for a release that re-publishes everything anyway.
+
 After ten consecutive API errors it stops, reporting the service, the last
 error, and its type — enough to tell a DNS failure from a timeout from a
 rate limit without re-running:

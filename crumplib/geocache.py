@@ -13,6 +13,32 @@ import sqlite3
 
 from . import normalize
 
+#: Decimal places kept for a coordinate. Five is about 1.1 m of latitude and
+#: 0.9 m of longitude in Virginia -- at or below the real error of every
+#: source. The Census geocoder interpolates along street address ranges (tens
+#: of metres off) and VGIN's address points are good to a few metres, yet both
+#: return 12-14 decimals: nanometres.
+COORDINATE_DECIMALS = 5
+
+#: Whether `GeocodeCache.coordinates` rounds what it reads. The cache holds
+#: ~959,000 rows stored at full precision before `geocode` began rounding on
+#: write, and turning this on rounds those too -- which rewrites every geocoded
+#: entity file (roughly 1.2 million), each a billed S3 PUT on the next publish.
+#: So it stays off until some other change forces a full re-upload anyway;
+#: flip it in that same release.
+ROUND_ON_READ = False
+
+
+def round_coordinate(value):
+    """Round a latitude or longitude to the precision we can stand behind.
+
+    Rounds rather than truncates: truncation would shift every point toward
+    zero by up to a full unit of the last place.
+    """
+    if value is None:
+        return None
+    return round(float(value), COORDINATE_DECIMALS)
+
 
 def address_key(street_1, street_2, city, state, zip_code):
     """Build the exact string the cached MD5 hashes were computed over.
@@ -118,6 +144,8 @@ class GeocodeCache:
             return None
 
         self.hits += 1
+        if ROUND_ON_READ:
+            return [round_coordinate(row[1]), round_coordinate(row[0])]
         return [row[1], row[0]]
 
     def close(self):

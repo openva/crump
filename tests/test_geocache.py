@@ -110,3 +110,52 @@ class TestGeocodeCache:
 
     def test_len_reports_row_count(self, cache):
         assert len(geocache.GeocodeCache(cache)) == 1
+
+
+class TestCoordinatePrecision:
+    def test_rounds_to_five_decimals(self):
+        assert geocache.round_coordinate(38.794785570307546) == 38.79479
+        assert geocache.round_coordinate(-77.17516530210756) == -77.17517
+
+    def test_rounds_rather_than_truncates(self):
+        """Truncating would pull every point toward zero."""
+        assert geocache.round_coordinate(-77.123456) == -77.12346
+
+    def test_accepts_the_strings_an_api_might_return(self):
+        assert geocache.round_coordinate("38.794785570307546") == 38.79479
+
+    def test_none_stays_none(self):
+        assert geocache.round_coordinate(None) is None
+
+    def test_reads_are_unrounded_by_default(self, tmp_path):
+        """Rounding old rows on read would rewrite every published file."""
+        assert geocache.ROUND_ON_READ is False
+        assert self._lookup(tmp_path) == [-77.17516530210756, 38.794785570307546]
+
+    def test_reads_round_once_switched_on(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(geocache, "ROUND_ON_READ", True)
+        assert self._lookup(tmp_path) == [-77.17517, 38.79479]
+
+    def _lookup(self, tmp_path):
+        address = ("6628 ELECTRONIC DR", "", "SPRINGFIELD", "VA", "22151")
+        path = tmp_path / "addresses.db"
+        connection = sqlite3.connect(path)
+        connection.execute(
+            "CREATE TABLE addresses (address_hash TEXT PRIMARY KEY NOT NULL, "
+            "address_cleaned TEXT, latitude REAL, longitude REAL, date INTEGER, "
+            "source TEXT)"
+        )
+        connection.execute(
+            "INSERT INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                geocache.address_hash(*address),
+                "6628 ELECTRONIC DR, SPRINGFIELD, VA, 22151",
+                38.794785570307546,
+                -77.17516530210756,
+                0,
+                "VITA",
+            ),
+        )
+        connection.commit()
+        connection.close()
+        return geocache.GeocodeCache(str(path)).coordinates(*address)

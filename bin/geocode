@@ -27,7 +27,7 @@ from pathlib import Path
 sys.path.insert(1, str(Path(__file__).resolve().parent.parent))
 
 from crumplib import batch as batch_geocoder
-from crumplib.geocache import address_hash
+from crumplib.geocache import address_hash, round_coordinate
 from crumplib.normalize import abbreviate_state, clean_text
 
 csv.field_size_limit(1 << 24)
@@ -366,17 +366,7 @@ def run_batches(options, db, pending, session):
             continue
 
         for digest, result in matches.items():
-            db.execute(
-                "INSERT OR REPLACE INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
-                (
-                    digest,
-                    result["address"],
-                    result["latitude"],
-                    result["longitude"],
-                    int(time.time()),
-                    result["source"],
-                ),
-            )
+            _record_match(db, digest, result)
         for digest, reason in rejected.items():
             db.execute(
                 "INSERT OR REPLACE INTO failures VALUES (?, ?, ?)",
@@ -472,17 +462,7 @@ def run_serial(options, db, session, rows):
             counts["failed"] += 1
             _tick(options, "x", f"failed: {reason}")
         else:
-            db.execute(
-                "INSERT OR REPLACE INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
-                (
-                    digest,
-                    result["address"],
-                    result["latitude"],
-                    result["longitude"],
-                    int(time.time()),
-                    result["source"],
-                ),
-            )
+            _record_match(db, digest, result)
             db.commit()
             counts["geocoded"] += 1
             _tick(options, "+", f"geocoded: {result['address']}")
@@ -586,17 +566,7 @@ def main(argv=None):
                 counts["failed"] += 1
                 _tick(options, "x", "failed: %s" % reason)
             else:
-                db.execute(
-                    "INSERT OR REPLACE INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
-                    (
-                        digest,
-                        result["address"],
-                        result["latitude"],
-                        result["longitude"],
-                        int(time.time()),
-                        result["source"],
-                    ),
-                )
+                _record_match(db, digest, result)
                 db.commit()
                 counts["geocoded"] += 1
                 _tick(
@@ -624,6 +594,25 @@ def main(argv=None):
         )
     )
     return 0
+
+
+def _record_match(db, digest, result):
+    """Cache a geocoded address. The caller commits.
+
+    Coordinates are rounded here, the one place every geocoder's result passes
+    through, so the cache never claims more precision than the services have.
+    """
+    db.execute(
+        "INSERT OR REPLACE INTO addresses VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            digest,
+            result["address"],
+            round_coordinate(result["latitude"]),
+            round_coordinate(result["longitude"]),
+            int(time.time()),
+            result["source"],
+        ),
+    )
 
 
 def _record_failure(db, digest, reason):

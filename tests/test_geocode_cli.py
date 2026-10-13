@@ -7,6 +7,7 @@ running the tool.
 
 import pathlib
 import re
+import sqlite3
 
 GEOCODE = pathlib.Path(__file__).resolve().parent.parent / "bin" / "geocode"
 
@@ -122,3 +123,28 @@ class TestHaltSites:
         assert source.count("consecutive_errors += 1") == source.count(
             "last_error = error"
         )
+
+
+class TestRecordMatch:
+    def test_stores_coordinates_at_five_decimals(self):
+        """Geocoders answer in nanometres; the cache should not repeat it."""
+        namespace = geocode_namespace()
+        db = sqlite3.connect(":memory:")
+        db.execute(namespace["SCHEMA"])
+        namespace["_record_match"](
+            db,
+            "abc",
+            {
+                "address": "6628 ELECTRONIC DR, SPRINGFIELD, VA, 22151",
+                "latitude": 38.794785570307546,
+                "longitude": -77.17516530210756,
+                "source": "VGIN",
+            },
+        )
+        row = db.execute("SELECT latitude, longitude FROM addresses").fetchone()
+        assert row == (38.79479, -77.17517)
+
+    def test_every_cache_write_goes_through_it(self):
+        """A second INSERT site would store unrounded coordinates."""
+        source = GEOCODE.read_text()
+        assert source.count("INSERT OR REPLACE INTO addresses") == 1
